@@ -26,7 +26,37 @@ go.work.sum
 
 # env file
 .env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+
+# Build artifacts
+dist/
+build/
+bin/
+
+# Temporary files
+tmp/
+temp/
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

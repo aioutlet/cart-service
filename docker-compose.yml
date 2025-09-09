@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Jaeger All-in-One for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: cart-service-jaeger
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '14268:14268' # HTTP collector endpoint
+      - '14250:14250' # gRPC collector endpoint
+      - '6831:6831/udp' # UDP endpoint for Jaeger agent
+      - '6832:6832/udp' # UDP endpoint for Jaeger agent
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      LOG_LEVEL: info
+    networks:
+      - cart-service-network
+
+  # Redis for cart storage
+  redis:
+    image: redis:7-alpine
+    container_name: cart-service-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - cart_redis_data:/data
+    networks:
+      - cart-service-network
+
+  # Cart Service
+  cart-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cart-service
+    ports:
+      - '8085:8085'
+    environment:
+      ENVIRONMENT: development
+      PORT: 8085
+      REDIS_ADDRESS: redis:6379
+      TRACING_ENABLED: 'true'
+      TRACING_SERVICE_NAME: cart-service
+      TRACING_SERVICE_VERSION: 1.0.0
+      TRACING_JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      TRACING_SAMPLE_RATE: 1.0
+      PRODUCT_SERVICE_URL: http://host.docker.internal:8081
+      INVENTORY_SERVICE_URL: http://host.docker.internal:8082
+      ORDER_SERVICE_URL: http://host.docker.internal:8083
+      USER_SERVICE_URL: http://host.docker.internal:8084
+    depends_on:
+      - redis
+      - jaeger
+    networks:
+      - cart-service-network
+
+volumes:
+  cart_redis_data:
+
+networks:
+  cart-service-network:
+    driver: bridge
