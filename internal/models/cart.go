@@ -66,9 +66,10 @@ type CartResponse struct {
 
 // ErrorResponse represents an error response
 type ErrorResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Error   string `json:"error,omitempty"`
+	Success       bool   `json:"success"`
+	Message       string `json:"message"`
+	Error         string `json:"error,omitempty"`
+	CorrelationID string `json:"correlationId,omitempty"`
 }
 
 // CartSummary represents a summary of cart for order processing

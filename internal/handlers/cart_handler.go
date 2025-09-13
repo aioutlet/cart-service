@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/aioutlet/cart-service/internal/middleware"
 	"github.com/aioutlet/cart-service/internal/models"
@@ -513,8 +514,32 @@ func (h *CartHandler) respondWithError(c *gin.Context, statusCode int, message s
 		Message: message,
 	}
 
+	// Add correlation ID if available
+	if correlationID := c.GetString("correlation_id"); correlationID != "" {
+		response.CorrelationID = correlationID
+	}
+
+	// Environment-based error details
+	isDevelopment := os.Getenv("ENVIRONMENT") == "development" || os.Getenv("GO_ENV") == "development"
+	
 	if err != nil {
-		response.Error = err.Error()
+		if isDevelopment {
+			response.Error = err.Error()
+		} else {
+			// Don't expose internal error details in production
+			switch statusCode {
+			case http.StatusNotFound:
+				response.Error = "Resource not found"
+			case http.StatusBadRequest:
+				response.Error = "Invalid request"
+			case http.StatusUnauthorized:
+				response.Error = "Unauthorized"
+			case http.StatusForbidden:
+				response.Error = "Forbidden"
+			default:
+				response.Error = "Internal server error"
+			}
+		}
 	}
 
 	c.JSON(statusCode, response)
