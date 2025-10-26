@@ -53,7 +53,7 @@ type ProductInfo struct {
 	Price       float64 `json:"price"`
 	ImageURL    string  `json:"imageUrl"`
 	Category    string  `json:"category"`
-	IsActive    bool    `json:"isActive"`
+	IsActive    bool    `json:"is_active"`
 	StockQty    int     `json:"stockQty"`
 }
 

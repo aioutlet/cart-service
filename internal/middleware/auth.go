@@ -64,9 +64,13 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 
 		// Check if token is valid and extract claims
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Extract user ID from claims
-			userID, exists := claims["sub"].(string)
-			if !exists {
+			// Extract user ID from claims - try 'sub' first, then 'id'
+			var userID string
+			if sub, exists := claims["sub"].(string); exists {
+				userID = sub
+			} else if id, exists := claims["id"].(string); exists {
+				userID = id
+			} else {
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"success": false,
 					"message": "User ID not found in token",
@@ -141,8 +145,10 @@ func OptionalAuthMiddleware(secretKey string) gin.HandlerFunc {
 
 		// Check if token is valid and extract claims
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Extract user ID from claims
+			// Extract user ID from claims - try 'sub' first, then 'id'
 			if userID, exists := claims["sub"].(string); exists {
+				c.Set("userID", userID)
+			} else if userID, exists := claims["id"].(string); exists {
 				c.Set("userID", userID)
 			}
 			

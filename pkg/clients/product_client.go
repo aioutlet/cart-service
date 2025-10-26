@@ -52,7 +52,7 @@ func (c *productClient) GetProduct(ctx context.Context, productID string) (*mode
 		attribute.String("operation", "get_product"),
 	)
 
-	url := fmt.Sprintf("%s/api/v1/products/%s", c.baseURL, productID)
+	url := fmt.Sprintf("%s/api/products/%s", c.baseURL, productID)
 	
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -109,13 +109,10 @@ func (c *productClient) GetProduct(ctx context.Context, productID string) (*mode
 		return nil, fmt.Errorf("product service returned status %d", resp.StatusCode)
 	}
 
-	var response struct {
-		Success bool                `json:"success"`
-		Data    *models.ProductInfo `json:"data"`
-		Message string              `json:"message"`
-	}
+	// Product service returns the product data directly
+	var productInfo models.ProductInfo
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&productInfo); err != nil {
 		span.RecordError(err)
 		span.SetAttributes(attribute.String("error", "failed to decode response"))
 		c.logger.Error("Failed to decode product response", 
@@ -126,24 +123,19 @@ func (c *productClient) GetProduct(ctx context.Context, productID string) (*mode
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if !response.Success || response.Data == nil {
-		span.SetAttributes(attribute.String("error", "invalid response format"))
-		return nil, models.ErrProductNotFound
-	}
-
 	span.SetAttributes(
-		attribute.String("product.name", response.Data.Name),
-		attribute.Float64("product.price", response.Data.Price),
-		attribute.Bool("product.active", response.Data.IsActive),
+		attribute.String("product.name", productInfo.Name),
+		attribute.Float64("product.price", productInfo.Price),
+		attribute.Bool("product.active", productInfo.IsActive),
 	)
 	span.AddEvent("Product information retrieved successfully")
 
-	return response.Data, nil
+	return &productInfo, nil
 }
 
 // GetProducts retrieves multiple products by IDs
 func (c *productClient) GetProducts(ctx context.Context, productIDs []string) ([]models.ProductInfo, error) {
-	url := fmt.Sprintf("%s/api/v1/products/batch", c.baseURL)
+	url := fmt.Sprintf("%s/api/products/batch", c.baseURL)
 	
 	requestBody := map[string][]string{
 		"productIds": productIDs,
