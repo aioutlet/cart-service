@@ -112,12 +112,14 @@ The Cart Service is a Go/Gin microservice that manages shopping cart operations 
 **Concurrency Control**: Built-in ETag-based optimistic locking prevents race conditions
 
 **Operational Features**:
+
 - Automatic retries with exponential backoff
 - Circuit breaker for resilience
 - Built-in observability and metrics
 - State encryption at rest (optional)
 
 **Developer Experience**:
+
 - Simplified code without direct database client management
 - Consistent API across all state stores
 - Bulk operations support
@@ -165,14 +167,16 @@ Cart Service stores cart data using Dapr State Management (with Redis backing st
 **Guest Cart**: `cart:guest:{guestId}`
 
 **State Metadata**:
+
 ```json
 {
-  "ttlInSeconds": 2592000,  // 30 days for users, 259200 (3 days) for guests
+  "ttlInSeconds": 2592000, // 30 days for users, 259200 (3 days) for guests
   "contentType": "application/json"
 }
 ```
 
 **Concurrency Control**:
+
 - Dapr automatically manages ETags for optimistic concurrency
 - No separate lock keys needed (handled by Dapr State Management)
 
@@ -205,13 +209,13 @@ Cart Service communicates synchronously with:
 
 #### 2.6.2 Dapr Configuration
 
-| Variable              | Description                     | Example          | Required | Default          |
-| --------------------- | ------------------------------- | ---------------- | -------- | ---------------- |
-| `DAPR_HTTP_PORT`      | Dapr HTTP sidecar port          | `3500`           | No       | `3500`           |
-| `DAPR_GRPC_PORT`      | Dapr gRPC sidecar port          | `50001`          | No       | `50001`          |
-| `DAPR_STATE_STORE`    | Dapr state store component name | `statestore`     | Yes      | `statestore`     |
-| `DAPR_APP_ID`         | Dapr application identifier     | `cart-service`   | Yes      | `cart-service`   |
-| `DAPR_APP_PORT`       | Port where cart service listens | `8085`           | No       | `8085`           |
+| Variable           | Description                     | Example        | Required | Default        |
+| ------------------ | ------------------------------- | -------------- | -------- | -------------- |
+| `DAPR_HTTP_PORT`   | Dapr HTTP sidecar port          | `3500`         | No       | `3500`         |
+| `DAPR_GRPC_PORT`   | Dapr gRPC sidecar port          | `50001`        | No       | `50001`        |
+| `DAPR_STATE_STORE` | Dapr state store component name | `statestore`   | Yes      | `statestore`   |
+| `DAPR_APP_ID`      | Dapr application identifier     | `cart-service` | Yes      | `cart-service` |
+| `DAPR_APP_PORT`    | Port where cart service listens | `8085`         | No       | `8085`         |
 
 #### 2.6.3 Authentication Configuration
 
@@ -265,23 +269,25 @@ spec:
   type: state.redis
   version: v1
   metadata:
-  - name: redisHost
-    value: localhost:6379
-  - name: redisPassword
-    value: ""
-  - name: actorStateStore
-    value: "false"
-  - name: keyPrefix
-    value: "cart"
+    - name: redisHost
+      value: localhost:6379
+    - name: redisPassword
+      value: ''
+    - name: actorStateStore
+      value: 'false'
+    - name: keyPrefix
+      value: 'cart'
 ```
 
 **State Operations**:
+
 - **Save**: `POST http://localhost:3500/v1.0/state/statestore` with TTL metadata
 - **Get**: `GET http://localhost:3500/v1.0/state/statestore/{key}`
 - **Delete**: `DELETE http://localhost:3500/v1.0/state/statestore/{key}`
 - **Bulk**: `POST http://localhost:3500/v1.0/state/statestore/bulk`
 
 **Concurrency**:
+
 - First write wins (optimistic locking with ETags)
 - Last write wins (for non-critical updates)
 - Configurable consistency: eventual or strong
@@ -928,15 +934,15 @@ Content-Type: application/json
 
 #### 3.5.2 Server Error Codes (5xx)
 
-| Error Code                | HTTP Status | Description                        | Client Action                       |
-| ------------------------- | ----------- | ---------------------------------- | ----------------------------------- |
-| `INTERNAL_SERVER_ERROR`   | 500         | Unexpected server error            | Retry with backoff, contact support |
-| `STATE_STORE_ERROR`       | 500         | Dapr state store operation failed  | Retry request                       |
-| `CONCURRENCY_ERROR`       | 409         | ETag mismatch (concurrent update)  | Retry with latest state             |
-| `PRODUCT_SERVICE_ERROR`   | 500         | Product service unavailable        | Retry request                       |
-| `INVENTORY_SERVICE_ERROR` | 500         | Inventory service unavailable      | Retry request                       |
-| `SERVICE_UNAVAILABLE`     | 503         | Service temporarily unavailable    | Wait and retry                      |
-| `GATEWAY_TIMEOUT`         | 504         | Request timeout                    | Retry with exponential backoff      |
+| Error Code                | HTTP Status | Description                       | Client Action                       |
+| ------------------------- | ----------- | --------------------------------- | ----------------------------------- |
+| `INTERNAL_SERVER_ERROR`   | 500         | Unexpected server error           | Retry with backoff, contact support |
+| `STATE_STORE_ERROR`       | 500         | Dapr state store operation failed | Retry request                       |
+| `CONCURRENCY_ERROR`       | 409         | ETag mismatch (concurrent update) | Retry with latest state             |
+| `PRODUCT_SERVICE_ERROR`   | 500         | Product service unavailable       | Retry request                       |
+| `INVENTORY_SERVICE_ERROR` | 500         | Inventory service unavailable     | Retry request                       |
+| `SERVICE_UNAVAILABLE`     | 503         | Service temporarily unavailable   | Wait and retry                      |
+| `GATEWAY_TIMEOUT`         | 504         | Request timeout                   | Retry with exponential backoff      |
 
 #### 3.5.3 Error Response Format
 
