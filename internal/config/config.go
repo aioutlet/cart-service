@@ -14,7 +14,7 @@ import (
 type Config struct {
 	Environment string
 	Server      ServerConfig
-	Redis       RedisConfig
+	Dapr        DaprConfig
 	JWT         JWTConfig
 	CORS        CORSConfig
 	Cart        CartConfig
@@ -28,11 +28,12 @@ type ServerConfig struct {
 	WriteTimeout time.Duration
 }
 
-type RedisConfig struct {
-	Address  string
-	Password string
-	DB       int
-	PoolSize int
+type DaprConfig struct {
+	HTTPPort       string
+	GRPCPort       string
+	StateStoreName string
+	AppID          string
+	AppPort        string
 }
 
 type JWTConfig struct {
@@ -80,11 +81,12 @@ func Load() *Config {
 			ReadTimeout:  getDurationEnv("SERVER_READ_TIMEOUT", 30*time.Second),
 			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 30*time.Second),
 		},
-		Redis: RedisConfig{
-			Address:  getEnv("REDIS_ADDRESS", "localhost:6379"),
-			Password: getEnv("REDIS_PASSWORD", ""),
-			DB:       getIntEnv("REDIS_DB", 0),
-			PoolSize: getIntEnv("REDIS_POOL_SIZE", 10),
+		Dapr: DaprConfig{
+			HTTPPort:       getEnv("DAPR_HTTP_PORT", "3500"),
+			GRPCPort:       getEnv("DAPR_GRPC_PORT", "50001"),
+			StateStoreName: getEnv("DAPR_STATE_STORE", "statestore"),
+			AppID:          getEnv("DAPR_APP_ID", "cart-service"),
+			AppPort:        getEnv("DAPR_APP_PORT", "8085"),
 		},
 		JWT: JWTConfig{
 			SecretKey: getEnv("JWT_SECRET", "your-256-bit-secret"),
