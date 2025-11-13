@@ -12,6 +12,8 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
+	Name        string
+	Version     string
 	Environment string
 	Server      ServerConfig
 	Dapr        DaprConfig
@@ -75,18 +77,20 @@ func Load() *Config {
 	}
 
 	return &Config{
+		Name:        getEnv("NAME", "cart-service"),
+		Version:     getEnv("VERSION", "1.0.0"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		Server: ServerConfig{
-			Port:         getEnv("PORT", "8085"),
+			Port:         getEnv("PORT", "1008"),
 			ReadTimeout:  getDurationEnv("SERVER_READ_TIMEOUT", 30*time.Second),
 			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 30*time.Second),
 		},
 		Dapr: DaprConfig{
-			HTTPPort:       getEnv("DAPR_HTTP_PORT", "3500"),
-			GRPCPort:       getEnv("DAPR_GRPC_PORT", "50001"),
+			HTTPPort:       getEnv("DAPR_HTTP_PORT", "3508"),
+			GRPCPort:       getEnv("DAPR_GRPC_PORT", "50008"),
 			StateStoreName: getEnv("DAPR_STATE_STORE", "statestore"),
 			AppID:          getEnv("DAPR_APP_ID", "cart-service"),
-			AppPort:        getEnv("DAPR_APP_PORT", "8085"),
+			AppPort:        getEnv("DAPR_APP_PORT", "1008"),
 		},
 		JWT: JWTConfig{
 			SecretKey: getEnv("JWT_SECRET", "your-256-bit-secret"),

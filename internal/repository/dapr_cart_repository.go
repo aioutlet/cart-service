@@ -11,10 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	cartKeyPrefix = "cart:"
-)
-
 // DaprCartRepository implements CartRepository using Dapr State Management
 type DaprCartRepository struct {
 	client         dapr.Client

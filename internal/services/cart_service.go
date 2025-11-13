@@ -9,8 +9,6 @@ import (
 	"github.com/aioutlet/cart-service/internal/models"
 	"github.com/aioutlet/cart-service/internal/repository"
 	"github.com/aioutlet/cart-service/pkg/clients"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -69,143 +67,71 @@ func NewCartServiceWithClients(
 
 // GetCart retrieves a cart for a user
 func (s *cartService) GetCart(ctx context.Context, userID string) (*models.Cart, error) {
-	tracer := otel.Tracer("cart-service")
-	ctx, span := tracer.Start(ctx, "CartService.GetCart")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("user.id", userID),
-		attribute.String("operation", "get_cart"),
-	)
-
 	s.logger.Debug("Getting cart", 
-		zap.String("userID", userID),
-		zap.String("traceID", span.SpanContext().TraceID().String()),
-		zap.String("spanID", span.SpanContext().SpanID().String()))
+		zap.String("userID", userID))
 
 	cart, err := s.repo.GetCart(ctx, userID)
 	if err != nil {
 		if err == models.ErrCartNotFound {
 			// Create a new empty cart
-			span.AddEvent("Creating new cart")
-			span.SetAttributes(attribute.Bool("cart.new", true))
-			
 			cart = models.NewCart(userID, s.config.Cart.DefaultTTL)
 			if err := s.repo.SaveCart(ctx, cart); err != nil {
-				span.RecordError(err)
-				span.SetAttributes(attribute.String("error", "failed to save new cart"))
 				s.logger.Error("Failed to save new cart", 
 					zap.String("userID", userID),
-					zap.String("traceID", span.SpanContext().TraceID().String()),
-					zap.String("spanID", span.SpanContext().SpanID().String()),
 					zap.Error(err))
 				return nil, fmt.Errorf("failed to create new cart: %w", err)
 			}
-			span.AddEvent("New cart created successfully")
 			s.logger.Info("Created new cart", 
-				zap.String("userID", userID),
-				zap.String("traceID", span.SpanContext().TraceID().String()),
-				zap.String("spanID", span.SpanContext().SpanID().String()))
+				zap.String("userID", userID))
 		} else {
-			span.RecordError(err)
-			span.SetAttributes(attribute.String("error", err.Error()))
 			return nil, err
 		}
 	}
-
-	span.SetAttributes(
-		attribute.Int("cart.items.count", len(cart.Items)),
-		attribute.Float64("cart.total.price", cart.TotalPrice),
-		attribute.Bool("cart.new", false),
-	)
 
 	return cart, nil
 }
 
 // AddItem adds an item to the cart
 func (s *cartService) AddItem(ctx context.Context, userID string, request models.AddItemRequest) (*models.Cart, error) {
-	tracer := otel.Tracer("cart-service")
-	ctx, span := tracer.Start(ctx, "CartService.AddItem")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("user.id", userID),
-		attribute.String("product.id", request.ProductID),
-		attribute.Int("product.quantity", request.Quantity),
-		attribute.String("operation", "add_item"),
-	)
-
 	s.logger.Debug("Adding item to cart", 
 		zap.String("userID", userID),
 		zap.String("productID", request.ProductID),
-		zap.Int("quantity", request.Quantity),
-		zap.String("traceID", span.SpanContext().TraceID().String()),
-		zap.String("spanID", span.SpanContext().SpanID().String()))
+		zap.Int("quantity", request.Quantity))
 
 	// Acquire lock for cart operations
-	span.AddEvent("Acquiring cart lock")
 	lockAcquired, err := s.repo.AcquireLock(ctx, userID, 30*time.Second)
 	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "failed to acquire cart lock"))
 		return nil, fmt.Errorf("failed to acquire cart lock: %w", err)
 	}
 	if !lockAcquired {
 		err := fmt.Errorf("cart is currently being modified, please try again")
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "cart lock not acquired"))
 		return nil, err
 	}
 	defer s.repo.ReleaseLock(ctx, userID)
-	span.AddEvent("Cart lock acquired")
 
 	// Get product information
-	span.AddEvent("Fetching product information")
 	productInfo, err := s.productClient.GetProduct(ctx, request.ProductID)
 	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "failed to get product information"))
 		return nil, fmt.Errorf("failed to get product information: %w", err)
 	}
 
 	if !productInfo.IsActive {
-		err := fmt.Errorf("product is not available")
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "product not active"))
-		return nil, err
+		return nil, fmt.Errorf("product is not available")
 	}
 
-	span.SetAttributes(
-		attribute.String("product.name", productInfo.Name),
-		attribute.Float64("product.price", productInfo.Price),
-		attribute.Bool("product.active", productInfo.IsActive),
-	)
-	span.AddEvent("Product information retrieved")
-
 	// Check inventory
-	span.AddEvent("Checking inventory availability")
 	available, err := s.inventoryClient.CheckAvailability(ctx, request.ProductID, request.Quantity)
 	if err != nil {
-		span.SetAttributes(attribute.String("inventory.check", "failed"))
 		s.logger.Warn("Failed to check inventory, allowing operation", 
 			zap.String("productID", request.ProductID),
-			zap.String("traceID", span.SpanContext().TraceID().String()),
-			zap.String("spanID", span.SpanContext().SpanID().String()),
 			zap.Error(err))
 	} else if !available {
-		span.RecordError(models.ErrInsufficientStock)
-		span.SetAttributes(attribute.String("error", "insufficient stock"))
 		return nil, models.ErrInsufficientStock
-	} else {
-		span.SetAttributes(attribute.Bool("inventory.available", true))
-		span.AddEvent("Inventory check passed")
 	}
 
 	// Get or create cart
-	span.AddEvent("Getting cart")
 	cart, err := s.GetCart(ctx, userID)
 	if err != nil {
-		span.RecordError(err)
 		return nil, err
 	}
 
@@ -222,33 +148,19 @@ func (s *cartService) AddItem(ctx context.Context, userID string, request models
 	}
 
 	// Add item to cart
-	span.AddEvent("Adding item to cart")
 	if err := cart.AddItem(cartItem, s.config.Cart.MaxItems, s.config.Cart.MaxItemQty); err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", err.Error()))
 		return nil, err
 	}
 
 	// Save cart
-	span.AddEvent("Saving cart")
 	if err := s.repo.SaveCart(ctx, cart); err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "failed to save cart"))
 		return nil, fmt.Errorf("failed to save cart: %w", err)
 	}
-
-	span.SetAttributes(
-		attribute.Int("cart.items.count", len(cart.Items)),
-		attribute.Float64("cart.total.price", cart.TotalPrice),
-	)
-	span.AddEvent("Item added successfully")
 
 	s.logger.Info("Item added to cart successfully", 
 		zap.String("userID", userID),
 		zap.String("productID", request.ProductID),
-		zap.Int("quantity", request.Quantity),
-		zap.String("traceID", span.SpanContext().TraceID().String()),
-		zap.String("spanID", span.SpanContext().SpanID().String()))
+		zap.Int("quantity", request.Quantity))
 
 	return cart, nil
 }

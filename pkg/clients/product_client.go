@@ -9,10 +9,6 @@ import (
 	"time"
 
 	"github.com/aioutlet/cart-service/internal/models"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -42,30 +38,15 @@ func NewProductClient(baseURL string, logger *zap.Logger) ProductClient {
 
 // GetProduct retrieves product information by ID
 func (c *productClient) GetProduct(ctx context.Context, productID string) (*models.ProductInfo, error) {
-	tracer := otel.Tracer("cart-service")
-	ctx, span := tracer.Start(ctx, "ProductClient.GetProduct")
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("product.id", productID),
-		attribute.String("service", "product-service"),
-		attribute.String("operation", "get_product"),
-	)
-
 	url := fmt.Sprintf("%s/api/products/%s", c.baseURL, productID)
 	
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "failed to create request"))
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	
-	// Inject trace context into the request headers
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
-
 	// Add correlation ID if present in context
 	if correlationID := ctx.Value("correlationID"); correlationID != nil {
 		if id, ok := correlationID.(string); ok {
@@ -73,39 +54,23 @@ func (c *productClient) GetProduct(ctx context.Context, productID string) (*mode
 		}
 	}
 
-	span.AddEvent("Sending HTTP request", trace.WithAttributes(
-		attribute.String("http.method", "GET"),
-		attribute.String("http.url", url),
-	))
-
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "HTTP request failed"))
 		c.logger.Error("Failed to call product service", 
 			zap.String("productID", productID),
-			zap.String("traceID", span.SpanContext().TraceID().String()),
-			zap.String("spanID", span.SpanContext().SpanID().String()),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to call product service: %w", err)
 	}
 	defer resp.Body.Close()
 
-	span.SetAttributes(attribute.Int("http.status_code", resp.StatusCode))
-
 	if resp.StatusCode == http.StatusNotFound {
-		span.SetAttributes(attribute.String("error", "product not found"))
 		return nil, models.ErrProductNotFound
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		span.RecordError(fmt.Errorf("product service returned status %d", resp.StatusCode))
-		span.SetAttributes(attribute.String("error", "non-200 status code"))
 		c.logger.Error("Product service returned error", 
 			zap.String("productID", productID),
-			zap.Int("statusCode", resp.StatusCode),
-			zap.String("traceID", span.SpanContext().TraceID().String()),
-			zap.String("spanID", span.SpanContext().SpanID().String()))
+			zap.Int("statusCode", resp.StatusCode))
 		return nil, fmt.Errorf("product service returned status %d", resp.StatusCode)
 	}
 
@@ -113,22 +78,11 @@ func (c *productClient) GetProduct(ctx context.Context, productID string) (*mode
 	var productInfo models.ProductInfo
 
 	if err := json.NewDecoder(resp.Body).Decode(&productInfo); err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "failed to decode response"))
 		c.logger.Error("Failed to decode product response", 
 			zap.String("productID", productID),
-			zap.String("traceID", span.SpanContext().TraceID().String()),
-			zap.String("spanID", span.SpanContext().SpanID().String()),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
-	span.SetAttributes(
-		attribute.String("product.name", productInfo.Name),
-		attribute.Float64("product.price", productInfo.Price),
-		attribute.Bool("product.active", productInfo.IsActive),
-	)
-	span.AddEvent("Product information retrieved successfully")
 
 	return &productInfo, nil
 }

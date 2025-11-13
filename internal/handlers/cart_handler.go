@@ -8,8 +8,6 @@ import (
 	"github.com/aioutlet/cart-service/internal/models"
 	"github.com/aioutlet/cart-service/internal/services"
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -39,41 +37,24 @@ func NewCartHandler(cartService services.CartService, logger *zap.Logger) *CartH
 // @Failure 500 {object} models.ErrorResponse
 // @Router /cart [get]
 func (h *CartHandler) GetCart(c *gin.Context) {
-	ctx, span := trace.SpanFromContext(c.Request.Context()).TracerProvider().Tracer("cart-service").Start(c.Request.Context(), "CartHandler.GetCart")
-	defer span.End()
-
 	userID, exists := c.Get("userID")
 	if !exists {
-		span.RecordError(models.ErrCartNotFound)
-		span.SetAttributes(attribute.String("error", "User not authenticated"))
 		h.respondWithError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
 	userIDStr := userID.(string)
-	span.SetAttributes(
-		attribute.String("user.id", userIDStr),
-		attribute.String("correlation.id", middleware.GetCorrelationID(c)),
-	)
+	ctx := c.Request.Context()
 
 	cart, err := h.cartService.GetCart(ctx, userIDStr)
 	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", err.Error()))
 		h.logger.Error("Failed to get cart", 
 			zap.String("userID", userIDStr), 
 			zap.String("correlationID", middleware.GetCorrelationID(c)),
-			zap.String("traceID", middleware.GetTraceID(c)),
-			zap.String("spanID", middleware.GetSpanID(c)),
 			zap.Error(err))
 		h.respondWithError(c, http.StatusInternalServerError, "Failed to get cart", err)
 		return
 	}
-
-	span.SetAttributes(
-		attribute.Int("cart.items.count", len(cart.Items)),
-		attribute.Float64("cart.total.price", cart.TotalPrice),
-	)
 
 	h.respondWithSuccess(c, http.StatusOK, "Cart retrieved successfully", cart)
 }
@@ -93,54 +74,34 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse
 // @Router /cart/items [post]
 func (h *CartHandler) AddItem(c *gin.Context) {
-	ctx, span := trace.SpanFromContext(c.Request.Context()).TracerProvider().Tracer("cart-service").Start(c.Request.Context(), "CartHandler.AddItem")
-	defer span.End()
 
 	userID, exists := c.Get("userID")
 	if !exists {
-		span.RecordError(models.ErrCartNotFound)
-		span.SetAttributes(attribute.String("error", "User not authenticated"))
 		h.respondWithError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
 	var request models.AddItemRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", "Invalid request body"))
 		h.respondWithError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
 	userIDStr := userID.(string)
-	span.SetAttributes(
-		attribute.String("user.id", userIDStr),
-		attribute.String("product.id", request.ProductID),
-		attribute.Int("product.quantity", request.Quantity),
-		attribute.String("correlation.id", middleware.GetCorrelationID(c)),
-	)
+	ctx := c.Request.Context()
 
 	cart, err := h.cartService.AddItem(ctx, userIDStr, request)
 	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(attribute.String("error", err.Error()))
 		h.logger.Error("Failed to add item to cart", 
 			zap.String("userID", userIDStr),
 			zap.String("productID", request.ProductID),
 			zap.String("correlationID", middleware.GetCorrelationID(c)),
-			zap.String("traceID", middleware.GetTraceID(c)),
-			zap.String("spanID", middleware.GetSpanID(c)),
 			zap.Error(err))
 
 		statusCode := h.getErrorStatusCode(err)
 		h.respondWithError(c, statusCode, err.Error(), err)
 		return
 	}
-
-	span.SetAttributes(
-		attribute.Int("cart.items.count", len(cart.Items)),
-		attribute.Float64("cart.total.price", cart.TotalPrice),
-	)
 
 	h.respondWithSuccess(c, http.StatusOK, "Item added to cart successfully", cart)
 }

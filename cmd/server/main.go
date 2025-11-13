@@ -15,11 +15,8 @@ import (
 	"github.com/aioutlet/cart-service/internal/repository"
 	"github.com/aioutlet/cart-service/internal/services"
 	"github.com/aioutlet/cart-service/pkg/logger"
-	"github.com/aioutlet/cart-service/pkg/redis"
-	"github.com/aioutlet/cart-service/pkg/tracing"
-	"github.com/gin-contrib/cors"
+	dapr "github.com/dapr/go-sdk/client"
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -38,7 +35,7 @@ import (
 // @license.name MIT
 // @license.url https://opensource.org/licenses/MIT
 
-// @host localhost:8085
+// @host localhost:1008
 // @BasePath /api/v1
 
 // @securityDefinitions.apikey BearerAuth
@@ -54,40 +51,17 @@ func main() {
 	log := logger.New(cfg.Environment)
 	defer log.Sync()
 
-	// Initialize distributed tracing
-	tracingCfg := tracing.TracingConfig{
-		ServiceName:     cfg.Tracing.ServiceName,
-		ServiceVersion:  cfg.Tracing.ServiceVersion,
-		Environment:     cfg.Environment,
-		JaegerEndpoint:  cfg.Tracing.JaegerEndpoint,
-		Enabled:         cfg.Tracing.Enabled,
-		SampleRate:      cfg.Tracing.SampleRate,
-	}
-	
-	tp, err := tracing.InitTracing(tracingCfg, log)
+	// Initialize Dapr client
+	daprClient, err := dapr.NewClient()
 	if err != nil {
-		log.Fatal("Failed to initialize tracing", zap.Error(err))
+		log.Fatal("Failed to create Dapr client", zap.Error(err))
 	}
-	defer tracing.Shutdown(context.Background(), tp, log)
+	defer daprClient.Close()
 
-	// Initialize Redis client
-	redisClient, err := redis.NewClient(cfg.Redis)
-	if err != nil {
-		log.Fatal("Failed to connect to Redis", zap.Error(err))
-	}
-	defer redisClient.Close()
+	log.Info("Successfully connected to Dapr")
 
-	// Test Redis connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	
-	if err := redisClient.Ping(ctx).Err(); err != nil {
-		log.Fatal("Redis ping failed", zap.Error(err))
-	}
-	log.Info("Successfully connected to Redis")
-
-	// Initialize repository
-	cartRepo := repository.NewCartRepository(redisClient, log)
+	// Initialize repository with Dapr
+	cartRepo := repository.NewDaprCartRepository(daprClient, cfg.Dapr.StateStoreName, log)
 
 	// Initialize services
 	cartService := services.NewCartService(cartRepo, cfg, log)
@@ -105,25 +79,74 @@ func main() {
 	// Middleware
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(otelgin.Middleware("cart-service"))
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.CORS.AllowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Correlation-ID", "traceparent", "tracestate"},
-		ExposeHeaders:    []string{"X-Correlation-ID", "traceparent", "tracestate"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
 	router.Use(middleware.CorrelationID())
 	router.Use(middleware.Logger(log))
+
+	// Home/Root endpoint
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"service":     cfg.Name,
+			"version":     cfg.Version,
+			"environment": cfg.Environment,
+			"message":     "Cart Service is running",
+			"status":      "operational",
+		})
+	})
+
+	// Version endpoint
+	router.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"version": cfg.Version,
+		})
+	})
+
+	// Service info endpoint
+	router.GET("/info", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"service":     cfg.Name,
+			"version":     cfg.Version,
+			"environment": cfg.Environment,
+			"configuration": gin.H{
+				"dapr_http_port": cfg.Dapr.HTTPPort,
+				"dapr_grpc_port": cfg.Dapr.GRPCPort,
+			},
+			"timestamp": time.Now().UTC(),
+		})
+	})
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":    "healthy",
-			"service":   "cart-service",
+			"service":   cfg.Name,
 			"timestamp": time.Now().UTC(),
-			"version":   "1.0.0",
+			"version":   cfg.Version,
+		})
+	})
+
+	// Liveness probe
+	router.GET("/liveness", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "alive",
+		})
+	})
+
+	// Readiness probe
+	router.GET("/readiness", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "ready",
+			"service":   cfg.Name,
+			"timestamp": time.Now().UTC(),
+			"version":   cfg.Version,
+		})
+	})
+
+	// Metrics endpoint
+	router.GET("/metrics", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"service":   cfg.Name,
+			"timestamp": time.Now().UTC(),
+			"version":   cfg.Version,
 		})
 	})
 
@@ -165,6 +188,8 @@ func main() {
 	// Graceful shutdown
 	go func() {
 		log.Info("Starting Cart Service", 
+			zap.String("name", cfg.Name),
+			zap.String("version", cfg.Version),
 			zap.String("port", cfg.Server.Port),
 			zap.String("environment", cfg.Environment))
 		
@@ -180,10 +205,10 @@ func main() {
 
 	log.Info("Shutting down Cart Service...")
 
-	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatal("Server forced to shutdown", zap.Error(err))
 	}
 

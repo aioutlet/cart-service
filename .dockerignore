@@ -1,0 +1,88 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Binaries for programs and plugins
+main
+__debug_bin
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace file
+go.work
+
+# Dependency directories (remove the comment below to include it)
+vendor/
+
+# Build output
+bin/
+build/
+dist/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env*
+!.env.development
+!.env.production
+
+# Documentation
+README.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*~
+
+# Test files
+tests/
+*_test.go
+
+# Makefile
+Makefile
