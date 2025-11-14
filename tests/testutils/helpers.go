@@ -16,11 +16,12 @@ func CreateTestConfig() *config.Config {
 			ReadTimeout:  30 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		},
-		Redis: config.RedisConfig{
-			Address:  "localhost:6379",
-			Password: "",
-			DB:       1, // Use different DB for tests
-			PoolSize: 5,
+		Dapr: config.DaprConfig{
+			HTTPPort:       "3508",
+			GRPCPort:       "50008",
+			StateStoreName: "statestore",
+			AppID:          "cart-service",
+			AppPort:        "1008",
 		},
 		JWT: config.JWTConfig{
 			SecretKey: "test-secret-key",

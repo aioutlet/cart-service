@@ -1,13 +1,11 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
 
+	dapr "github.com/dapr/go-sdk/client"
 	"go.uber.org/zap"
 )
 
@@ -19,62 +17,37 @@ type InventoryClient interface {
 	ReleaseStock(ctx context.Context, productID string, quantity int) error
 }
 
-// inventoryClient implements InventoryClient interface
+// inventoryClient implements InventoryClient interface using Dapr service invocation
 type inventoryClient struct {
-	baseURL    string
-	httpClient *http.Client
+	daprClient dapr.Client
 	logger     *zap.Logger
 }
 
-// NewInventoryClient creates a new inventory client
-func NewInventoryClient(baseURL string, logger *zap.Logger) InventoryClient {
+// NewInventoryClient creates a new inventory client using Dapr SDK
+func NewInventoryClient(daprClient dapr.Client, logger *zap.Logger) InventoryClient {
 	return &inventoryClient{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		logger: logger,
+		daprClient: daprClient,
+		logger:     logger,
 	}
 }
 
-// CheckAvailability checks if a product has sufficient stock
+// CheckAvailability checks if a product has sufficient stock using Dapr service invocation
 func (c *inventoryClient) CheckAvailability(ctx context.Context, productID string, quantity int) (bool, error) {
-	url := fmt.Sprintf("%s/api/v1/inventory/%s/check?quantity=%d", c.baseURL, productID, quantity)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s/check?quantity=%d", productID, quantity)
 	
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	// Invoke inventory-service via Dapr
+	resp, err := c.daprClient.InvokeMethod(ctx, "inventory-service", methodPath, "GET")
 	if err != nil {
-		return false, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Add correlation ID if present in context
-	if correlationID := ctx.Value("correlationID"); correlationID != nil {
-		if id, ok := correlationID.(string); ok {
-			req.Header.Set("X-Correlation-ID", id)
-		}
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		c.logger.Error("Failed to call inventory service", 
+		c.logger.Error("Failed to invoke inventory service via Dapr", 
 			zap.String("productID", productID),
 			zap.Int("quantity", quantity),
 			zap.Error(err))
-		return false, fmt.Errorf("failed to call inventory service: %w", err)
+		return false, fmt.Errorf("failed to invoke inventory service: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
+	// Check for empty response (not found)
+	if len(resp) == 0 {
 		return false, nil
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error("Inventory service returned error", 
-			zap.String("productID", productID),
-			zap.Int("quantity", quantity),
-			zap.Int("statusCode", resp.StatusCode))
-		return false, fmt.Errorf("inventory service returned status %d", resp.StatusCode)
 	}
 
 	var response struct {
@@ -83,52 +56,32 @@ func (c *inventoryClient) CheckAvailability(ctx context.Context, productID strin
 		Message   string `json:"message"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		c.logger.Error("Failed to decode inventory response", 
+	if err := json.Unmarshal(resp, &response); err != nil {
+		c.logger.Error("Failed to unmarshal inventory response", 
 			zap.String("productID", productID), 
 			zap.Error(err))
-		return false, fmt.Errorf("failed to decode response: %w", err)
+		return false, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	return response.Success && response.Available, nil
 }
 
-// GetAvailableQuantity gets the available quantity for a product
+// GetAvailableQuantity gets the available quantity for a product using Dapr service invocation
 func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, productID string) (int, error) {
-	url := fmt.Sprintf("%s/api/v1/inventory/%s", c.baseURL, productID)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s", productID)
 	
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	// Invoke inventory-service via Dapr
+	resp, err := c.daprClient.InvokeMethod(ctx, "inventory-service", methodPath, "GET")
 	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Add correlation ID if present in context
-	if correlationID := ctx.Value("correlationID"); correlationID != nil {
-		if id, ok := correlationID.(string); ok {
-			req.Header.Set("X-Correlation-ID", id)
-		}
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		c.logger.Error("Failed to call inventory service for quantity", 
+		c.logger.Error("Failed to invoke inventory service for quantity via Dapr", 
 			zap.String("productID", productID),
 			zap.Error(err))
-		return 0, fmt.Errorf("failed to call inventory service: %w", err)
+		return 0, fmt.Errorf("failed to invoke inventory service: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
+	// Check for empty response (not found)
+	if len(resp) == 0 {
 		return 0, nil
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error("Inventory service returned error for quantity check", 
-			zap.String("productID", productID),
-			zap.Int("statusCode", resp.StatusCode))
-		return 0, fmt.Errorf("inventory service returned status %d", resp.StatusCode)
 	}
 
 	var response struct {
@@ -140,11 +93,11 @@ func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, productID st
 		Message string `json:"message"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		c.logger.Error("Failed to decode inventory quantity response", 
+	if err := json.Unmarshal(resp, &response); err != nil {
+		c.logger.Error("Failed to unmarshal inventory quantity response", 
 			zap.String("productID", productID), 
 			zap.Error(err))
-		return 0, fmt.Errorf("failed to decode response: %w", err)
+		return 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	if !response.Success {
@@ -154,9 +107,9 @@ func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, productID st
 	return response.Data.Quantity, nil
 }
 
-// ReserveStock reserves stock for a product (used during checkout)
+// ReserveStock reserves stock for a product (used during checkout) using Dapr service invocation
 func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, quantity int) error {
-	url := fmt.Sprintf("%s/api/v1/inventory/%s/reserve", c.baseURL, productID)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s/reserve", productID)
 	
 	requestBody := map[string]int{
 		"quantity": quantity,
@@ -167,44 +120,26 @@ func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, qu
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+	// Invoke inventory-service via Dapr with POST method
+	content := &dapr.DataContent{
+		Data:        bodyBytes,
+		ContentType: "application/json",
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Add correlation ID if present in context
-	if correlationID := ctx.Value("correlationID"); correlationID != nil {
-		if id, ok := correlationID.(string); ok {
-			req.Header.Set("X-Correlation-ID", id)
-		}
-	}
-
-	resp, err := c.httpClient.Do(req)
+	_, err = c.daprClient.InvokeMethodWithContent(ctx, "inventory-service", methodPath, "POST", content)
 	if err != nil {
-		c.logger.Error("Failed to reserve stock", 
+		c.logger.Error("Failed to reserve stock via Dapr", 
 			zap.String("productID", productID),
 			zap.Int("quantity", quantity),
 			zap.Error(err))
 		return fmt.Errorf("failed to reserve stock: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error("Failed to reserve stock", 
-			zap.String("productID", productID),
-			zap.Int("quantity", quantity),
-			zap.Int("statusCode", resp.StatusCode))
-		return fmt.Errorf("inventory service returned status %d", resp.StatusCode)
-	}
 
 	return nil
 }
 
-// ReleaseStock releases reserved stock for a product
+// ReleaseStock releases reserved stock for a product using Dapr service invocation
 func (c *inventoryClient) ReleaseStock(ctx context.Context, productID string, quantity int) error {
-	url := fmt.Sprintf("%s/api/v1/inventory/%s/release", c.baseURL, productID)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s/release", productID)
 	
 	requestBody := map[string]int{
 		"quantity": quantity,
@@ -215,36 +150,18 @@ func (c *inventoryClient) ReleaseStock(ctx context.Context, productID string, qu
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(bodyBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+	// Invoke inventory-service via Dapr with POST method
+	content := &dapr.DataContent{
+		Data:        bodyBytes,
+		ContentType: "application/json",
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Add correlation ID if present in context
-	if correlationID := ctx.Value("correlationID"); correlationID != nil {
-		if id, ok := correlationID.(string); ok {
-			req.Header.Set("X-Correlation-ID", id)
-		}
-	}
-
-	resp, err := c.httpClient.Do(req)
+	_, err = c.daprClient.InvokeMethodWithContent(ctx, "inventory-service", methodPath, "POST", content)
 	if err != nil {
-		c.logger.Error("Failed to release stock", 
+		c.logger.Error("Failed to release stock via Dapr", 
 			zap.String("productID", productID),
 			zap.Int("quantity", quantity),
 			zap.Error(err))
 		return fmt.Errorf("failed to release stock: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error("Failed to release stock", 
-			zap.String("productID", productID),
-			zap.Int("quantity", quantity),
-			zap.Int("statusCode", resp.StatusCode))
-		return fmt.Errorf("inventory service returned status %d", resp.StatusCode)
 	}
 
 	return nil

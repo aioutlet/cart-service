@@ -55,6 +55,11 @@ type CartConfig struct {
 }
 
 type ServicesConfig struct {
+	// NOTE: These URLs are no longer used by the application.
+	// Service invocation is now handled via Dapr SDK using app-id names:
+	//   - "product-service" instead of ProductServiceURL
+	//   - "inventory-service" instead of InventoryServiceURL
+	// These fields are kept for backward compatibility only.
 	ProductServiceURL   string
 	InventoryServiceURL string
 	OrderServiceURL     string

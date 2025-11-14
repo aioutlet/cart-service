@@ -1,14 +1,12 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/aioutlet/cart-service/internal/models"
+	dapr "github.com/dapr/go-sdk/client"
 	"go.uber.org/zap"
 )
 
@@ -18,78 +16,58 @@ type ProductClient interface {
 	GetProducts(ctx context.Context, productIDs []string) ([]models.ProductInfo, error)
 }
 
-// productClient implements ProductClient interface
+// productClient implements ProductClient interface using Dapr service invocation
 type productClient struct {
-	baseURL    string
-	httpClient *http.Client
+	daprClient dapr.Client
 	logger     *zap.Logger
 }
 
-// NewProductClient creates a new product client
-func NewProductClient(baseURL string, logger *zap.Logger) ProductClient {
+// NewProductClient creates a new product client using Dapr SDK
+func NewProductClient(daprClient dapr.Client, logger *zap.Logger) ProductClient {
 	return &productClient{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		logger: logger,
+		daprClient: daprClient,
+		logger:     logger,
 	}
 }
 
-// GetProduct retrieves product information by ID
+// GetProduct retrieves product information by ID using Dapr service invocation
 func (c *productClient) GetProduct(ctx context.Context, productID string) (*models.ProductInfo, error) {
-	url := fmt.Sprintf("%s/api/products/%s", c.baseURL, productID)
+	methodPath := fmt.Sprintf("/api/products/%s", productID)
 	
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	// Invoke product-service via Dapr
+	resp, err := c.daprClient.InvokeMethod(ctx, "product-service", methodPath, "GET")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Add correlation ID if present in context
-	if correlationID := ctx.Value("correlationID"); correlationID != nil {
-		if id, ok := correlationID.(string); ok {
-			req.Header.Set("X-Correlation-ID", id)
-		}
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		c.logger.Error("Failed to call product service", 
+		c.logger.Error("Failed to invoke product service via Dapr", 
 			zap.String("productID", productID),
 			zap.Error(err))
-		return nil, fmt.Errorf("failed to call product service: %w", err)
+		return nil, fmt.Errorf("failed to invoke product service: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
+	// Check if product not found (empty response or error structure)
+	if len(resp) == 0 {
 		return nil, models.ErrProductNotFound
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error("Product service returned error", 
-			zap.String("productID", productID),
-			zap.Int("statusCode", resp.StatusCode))
-		return nil, fmt.Errorf("product service returned status %d", resp.StatusCode)
 	}
 
 	// Product service returns the product data directly
 	var productInfo models.ProductInfo
-
-	if err := json.NewDecoder(resp.Body).Decode(&productInfo); err != nil {
-		c.logger.Error("Failed to decode product response", 
+	if err := json.Unmarshal(resp, &productInfo); err != nil {
+		c.logger.Error("Failed to unmarshal product response", 
 			zap.String("productID", productID),
 			zap.Error(err))
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	// Validate we got a valid product
+	if productInfo.ID == "" {
+		return nil, models.ErrProductNotFound
 	}
 
 	return &productInfo, nil
 }
 
-// GetProducts retrieves multiple products by IDs
+// GetProducts retrieves multiple products by IDs using Dapr service invocation
 func (c *productClient) GetProducts(ctx context.Context, productIDs []string) ([]models.ProductInfo, error) {
-	url := fmt.Sprintf("%s/api/products/batch", c.baseURL)
+	methodPath := "/api/products/batch"
 	
 	requestBody := map[string][]string{
 		"productIds": productIDs,
@@ -100,31 +78,15 @@ func (c *productClient) GetProducts(ctx context.Context, productIDs []string) ([
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(bodyBytes))
+	// Invoke product-service via Dapr with POST method
+	content := &dapr.DataContent{
+		Data:        bodyBytes,
+		ContentType: "application/json",
+	}
+	resp, err := c.daprClient.InvokeMethodWithContent(ctx, "product-service", methodPath, "POST", content)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Add correlation ID if present in context
-	if correlationID := ctx.Value("correlationID"); correlationID != nil {
-		if id, ok := correlationID.(string); ok {
-			req.Header.Set("X-Correlation-ID", id)
-		}
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		c.logger.Error("Failed to call product service for batch", zap.Error(err))
-		return nil, fmt.Errorf("failed to call product service: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		c.logger.Error("Product service returned error for batch request", 
-			zap.Int("statusCode", resp.StatusCode))
-		return nil, fmt.Errorf("product service returned status %d", resp.StatusCode)
+		c.logger.Error("Failed to invoke product service batch via Dapr", zap.Error(err))
+		return nil, fmt.Errorf("failed to invoke product service: %w", err)
 	}
 
 	var response struct {
@@ -133,9 +95,9 @@ func (c *productClient) GetProducts(ctx context.Context, productIDs []string) ([
 		Message string                `json:"message"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		c.logger.Error("Failed to decode products response", zap.Error(err))
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(resp, &response); err != nil {
+		c.logger.Error("Failed to unmarshal batch products response", zap.Error(err))
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
 	if !response.Success {

@@ -63,8 +63,8 @@ func main() {
 	// Initialize repository with Dapr
 	cartRepo := repository.NewDaprCartRepository(daprClient, cfg.Dapr.StateStoreName, log)
 
-	// Initialize services
-	cartService := services.NewCartService(cartRepo, cfg, log)
+	// Initialize services with Dapr client for service invocation
+	cartService := services.NewCartService(cartRepo, daprClient, cfg, log)
 
 	// Initialize handlers
 	cartHandler := handlers.NewCartHandler(cartService, log)

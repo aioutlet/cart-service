@@ -9,6 +9,7 @@ import (
 	"github.com/aioutlet/cart-service/internal/models"
 	"github.com/aioutlet/cart-service/internal/repository"
 	"github.com/aioutlet/cart-service/pkg/clients"
+	dapr "github.com/dapr/go-sdk/client"
 	"go.uber.org/zap"
 )
 
@@ -36,15 +37,16 @@ type cartService struct {
 // NewCartService creates a new cart service
 func NewCartService(
 	repo repository.CartRepository,
+	daprClient dapr.Client,
 	cfg *config.Config,
 	logger *zap.Logger,
 ) CartService {
 	return &cartService{
-		repo:           repo,
-		productClient:  clients.NewProductClient(cfg.Services.ProductServiceURL, logger),
-		inventoryClient: clients.NewInventoryClient(cfg.Services.InventoryServiceURL, logger),
-		config:         cfg,
-		logger:         logger,
+		repo:            repo,
+		productClient:   clients.NewProductClient(daprClient, logger),
+		inventoryClient: clients.NewInventoryClient(daprClient, logger),
+		config:          cfg,
+		logger:          logger,
 	}
 }
 
