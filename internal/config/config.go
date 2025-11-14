@@ -20,7 +20,6 @@ type Config struct {
 	JWT         JWTConfig
 	CORS        CORSConfig
 	Cart        CartConfig
-	Services    ServicesConfig
 	Tracing     TracingConfig
 }
 
@@ -52,18 +51,6 @@ type CartConfig struct {
 	MaxItems       int
 	MaxItemQty     int
 	CleanupInterval time.Duration
-}
-
-type ServicesConfig struct {
-	// NOTE: These URLs are no longer used by the application.
-	// Service invocation is now handled via Dapr SDK using app-id names:
-	//   - "product-service" instead of ProductServiceURL
-	//   - "inventory-service" instead of InventoryServiceURL
-	// These fields are kept for backward compatibility only.
-	ProductServiceURL   string
-	InventoryServiceURL string
-	OrderServiceURL     string
-	UserServiceURL      string
 }
 
 type TracingConfig struct {
@@ -109,12 +96,6 @@ func Load() *Config {
 			MaxItems:        getIntEnv("CART_MAX_ITEMS", 100),
 			MaxItemQty:      getIntEnv("CART_MAX_ITEM_QTY", 10),
 			CleanupInterval: getDurationEnv("CART_CLEANUP_INTERVAL", 1*time.Hour),
-		},
-		Services: ServicesConfig{
-			ProductServiceURL:   getEnv("PRODUCT_SERVICE_URL", "http://localhost:8081"),
-			InventoryServiceURL: getEnv("INVENTORY_SERVICE_URL", "http://localhost:8082"),
-			OrderServiceURL:     getEnv("ORDER_SERVICE_URL", "http://localhost:8083"),
-			UserServiceURL:      getEnv("USER_SERVICE_URL", "http://localhost:8084"),
 		},
 		Tracing: TracingConfig{
 			Enabled:        getBoolEnv("TRACING_ENABLED", true),

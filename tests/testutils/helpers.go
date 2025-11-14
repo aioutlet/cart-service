@@ -36,12 +36,6 @@ func CreateTestConfig() *config.Config {
 			MaxItemQty:      5,
 			CleanupInterval: 1 * time.Hour,
 		},
-		Services: config.ServicesConfig{
-			ProductServiceURL:   "http://localhost:8081",
-			InventoryServiceURL: "http://localhost:8082",
-			OrderServiceURL:     "http://localhost:8083",
-			UserServiceURL:      "http://localhost:8084",
-		},
 	}
 }
 
