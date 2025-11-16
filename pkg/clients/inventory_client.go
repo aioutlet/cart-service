@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	dapr "github.com/dapr/go-sdk/client"
 	"go.uber.org/zap"
@@ -11,10 +12,10 @@ import (
 
 // InventoryClient interface for inventory service communication
 type InventoryClient interface {
-	CheckAvailability(ctx context.Context, productID string, quantity int) (bool, error)
-	GetAvailableQuantity(ctx context.Context, productID string) (int, error)
-	ReserveStock(ctx context.Context, productID string, quantity int) error
-	ReleaseStock(ctx context.Context, productID string, quantity int) error
+	CheckAvailability(ctx context.Context, sku string, quantity int) (bool, error)
+	GetAvailableQuantity(ctx context.Context, sku string) (int, error)
+	ReserveStock(ctx context.Context, sku string, quantity int) error
+	ReleaseStock(ctx context.Context, sku string, quantity int) error
 }
 
 // inventoryClient implements InventoryClient interface using Dapr service invocation
@@ -31,15 +32,17 @@ func NewInventoryClient(daprClient dapr.Client, logger *zap.Logger) InventoryCli
 	}
 }
 
-// CheckAvailability checks if a product has sufficient stock using Dapr service invocation
-func (c *inventoryClient) CheckAvailability(ctx context.Context, productID string, quantity int) (bool, error) {
-	methodPath := fmt.Sprintf("/api/v1/inventory/%s/check?quantity=%d", productID, quantity)
+// CheckAvailability checks if a SKU has sufficient stock using Dapr service invocation
+func (c *inventoryClient) CheckAvailability(ctx context.Context, sku string, quantity int) (bool, error) {
+	// URL encode the SKU to handle special characters like & in H&M
+	encodedSKU := url.PathEscape(sku)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s/check?quantity=%d", encodedSKU, quantity)
 	
 	// Invoke inventory-service via Dapr
 	resp, err := c.daprClient.InvokeMethod(ctx, "inventory-service", methodPath, "GET")
 	if err != nil {
 		c.logger.Error("Failed to invoke inventory service via Dapr", 
-			zap.String("productID", productID),
+			zap.String("sku", sku),
 			zap.Int("quantity", quantity),
 			zap.Error(err))
 		return false, fmt.Errorf("failed to invoke inventory service: %w", err)
@@ -58,7 +61,7 @@ func (c *inventoryClient) CheckAvailability(ctx context.Context, productID strin
 
 	if err := json.Unmarshal(resp, &response); err != nil {
 		c.logger.Error("Failed to unmarshal inventory response", 
-			zap.String("productID", productID), 
+			zap.String("sku", sku), 
 			zap.Error(err))
 		return false, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -66,15 +69,17 @@ func (c *inventoryClient) CheckAvailability(ctx context.Context, productID strin
 	return response.Success && response.Available, nil
 }
 
-// GetAvailableQuantity gets the available quantity for a product using Dapr service invocation
-func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, productID string) (int, error) {
-	methodPath := fmt.Sprintf("/api/v1/inventory/%s", productID)
+// GetAvailableQuantity gets the available quantity for a SKU using Dapr service invocation
+func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, sku string) (int, error) {
+	// URL encode the SKU to handle special characters
+	encodedSKU := url.PathEscape(sku)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s", encodedSKU)
 	
 	// Invoke inventory-service via Dapr
 	resp, err := c.daprClient.InvokeMethod(ctx, "inventory-service", methodPath, "GET")
 	if err != nil {
 		c.logger.Error("Failed to invoke inventory service for quantity via Dapr", 
-			zap.String("productID", productID),
+			zap.String("sku", sku),
 			zap.Error(err))
 		return 0, fmt.Errorf("failed to invoke inventory service: %w", err)
 	}
@@ -95,7 +100,7 @@ func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, productID st
 
 	if err := json.Unmarshal(resp, &response); err != nil {
 		c.logger.Error("Failed to unmarshal inventory quantity response", 
-			zap.String("productID", productID), 
+			zap.String("sku", sku), 
 			zap.Error(err))
 		return 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
@@ -107,9 +112,11 @@ func (c *inventoryClient) GetAvailableQuantity(ctx context.Context, productID st
 	return response.Data.Quantity, nil
 }
 
-// ReserveStock reserves stock for a product (used during checkout) using Dapr service invocation
-func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, quantity int) error {
-	methodPath := fmt.Sprintf("/api/v1/inventory/%s/reserve", productID)
+// ReserveStock reserves stock for a SKU (used during checkout) using Dapr service invocation
+func (c *inventoryClient) ReserveStock(ctx context.Context, sku string, quantity int) error {
+	// URL encode the SKU to handle special characters
+	encodedSKU := url.PathEscape(sku)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s/reserve", encodedSKU)
 	
 	requestBody := map[string]int{
 		"quantity": quantity,
@@ -128,7 +135,7 @@ func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, qu
 	_, err = c.daprClient.InvokeMethodWithContent(ctx, "inventory-service", methodPath, "POST", content)
 	if err != nil {
 		c.logger.Error("Failed to reserve stock via Dapr", 
-			zap.String("productID", productID),
+			zap.String("sku", sku),
 			zap.Int("quantity", quantity),
 			zap.Error(err))
 		return fmt.Errorf("failed to reserve stock: %w", err)
@@ -137,9 +144,11 @@ func (c *inventoryClient) ReserveStock(ctx context.Context, productID string, qu
 	return nil
 }
 
-// ReleaseStock releases reserved stock for a product using Dapr service invocation
-func (c *inventoryClient) ReleaseStock(ctx context.Context, productID string, quantity int) error {
-	methodPath := fmt.Sprintf("/api/v1/inventory/%s/release", productID)
+// ReleaseStock releases reserved stock for a SKU using Dapr service invocation
+func (c *inventoryClient) ReleaseStock(ctx context.Context, sku string, quantity int) error {
+	// URL encode the SKU to handle special characters
+	encodedSKU := url.PathEscape(sku)
+	methodPath := fmt.Sprintf("/api/v1/inventory/%s/release", encodedSKU)
 	
 	requestBody := map[string]int{
 		"quantity": quantity,
@@ -158,7 +167,7 @@ func (c *inventoryClient) ReleaseStock(ctx context.Context, productID string, qu
 	_, err = c.daprClient.InvokeMethodWithContent(ctx, "inventory-service", methodPath, "POST", content)
 	if err != nil {
 		c.logger.Error("Failed to release stock via Dapr", 
-			zap.String("productID", productID),
+			zap.String("sku", sku),
 			zap.Int("quantity", quantity),
 			zap.Error(err))
 		return fmt.Errorf("failed to release stock: %w", err)

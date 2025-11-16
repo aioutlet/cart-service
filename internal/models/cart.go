@@ -18,21 +18,25 @@ type Cart struct {
 
 // CartItem represents an item in the cart
 type CartItem struct {
-	ProductID   string  `json:"productId" redis:"product_id"`
-	ProductName string  `json:"productName" redis:"product_name"`
-	SKU         string  `json:"sku" redis:"sku"`
-	Price       float64 `json:"price" redis:"price"`
-	Quantity    int     `json:"quantity" redis:"quantity"`
-	ImageURL    string  `json:"imageUrl" redis:"image_url"`
-	Category    string  `json:"category" redis:"category"`
-	Subtotal    float64 `json:"subtotal" redis:"subtotal"`
-	AddedAt     time.Time `json:"addedAt" redis:"added_at"`
+	ProductID     string    `json:"productId" redis:"product_id"`
+	ProductName   string    `json:"productName" redis:"product_name"`
+	SKU           string    `json:"sku" redis:"sku"`
+	Price         float64   `json:"price" redis:"price"`
+	Quantity      int       `json:"quantity" redis:"quantity"`
+	ImageURL      string    `json:"imageUrl" redis:"image_url"`
+	Category      string    `json:"category" redis:"category"`
+	Subtotal      float64   `json:"subtotal" redis:"subtotal"`
+	SelectedColor string    `json:"selectedColor,omitempty" redis:"selected_color"`
+	SelectedSize  string    `json:"selectedSize,omitempty" redis:"selected_size"`
+	AddedAt       time.Time `json:"addedAt" redis:"added_at"`
 }
 
 // AddItemRequest represents a request to add an item to cart
 type AddItemRequest struct {
-	ProductID string `json:"productId" binding:"required"`
-	Quantity  int    `json:"quantity" binding:"required,min=1"`
+	ProductID      string `json:"productId" binding:"required"`
+	Quantity       int    `json:"quantity" binding:"required,min=1"`
+	SelectedColor  string `json:"selectedColor,omitempty"`
+	SelectedSize   string `json:"selectedSize,omitempty"`
 }
 
 // UpdateItemRequest represents a request to update an item in cart

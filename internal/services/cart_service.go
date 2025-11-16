@@ -9,6 +9,7 @@ import (
 	"github.com/aioutlet/cart-service/internal/models"
 	"github.com/aioutlet/cart-service/internal/repository"
 	"github.com/aioutlet/cart-service/pkg/clients"
+	"github.com/aioutlet/cart-service/pkg/utils"
 	dapr "github.com/dapr/go-sdk/client"
 	"go.uber.org/zap"
 )
@@ -121,11 +122,20 @@ func (s *cartService) AddItem(ctx context.Context, userID string, request models
 		return nil, fmt.Errorf("product is not available")
 	}
 
-	// Check inventory
-	available, err := s.inventoryClient.CheckAvailability(ctx, request.ProductID, request.Quantity)
+	// Generate variant SKU based on selected color and size
+	variantSKU := utils.GenerateVariantSKU(productInfo.SKU, request.SelectedColor, request.SelectedSize)
+	
+	s.logger.Debug("Generated variant SKU",
+		zap.String("baseSKU", productInfo.SKU),
+		zap.String("color", request.SelectedColor),
+		zap.String("size", request.SelectedSize),
+		zap.String("variantSKU", variantSKU))
+
+	// Check inventory using variant SKU
+	available, err := s.inventoryClient.CheckAvailability(ctx, variantSKU, request.Quantity)
 	if err != nil {
 		s.logger.Warn("Failed to check inventory, allowing operation", 
-			zap.String("productID", request.ProductID),
+			zap.String("variantSKU", variantSKU),
 			zap.Error(err))
 	} else if !available {
 		return nil, models.ErrInsufficientStock
@@ -139,14 +149,16 @@ func (s *cartService) AddItem(ctx context.Context, userID string, request models
 
 	// Create cart item
 	cartItem := models.CartItem{
-		ProductID:   productInfo.ID,
-		ProductName: productInfo.Name,
-		SKU:         productInfo.SKU,
-		Price:       productInfo.Price,
-		Quantity:    request.Quantity,
-		ImageURL:    productInfo.ImageURL,
-		Category:    productInfo.Category,
-		AddedAt:     time.Now().UTC(),
+		ProductID:     productInfo.ID,
+		ProductName:   productInfo.Name,
+		SKU:           variantSKU,
+		Price:         productInfo.Price,
+		Quantity:      request.Quantity,
+		ImageURL:      productInfo.ImageURL,
+		Category:      productInfo.Category,
+		SelectedColor: request.SelectedColor,
+		SelectedSize:  request.SelectedSize,
+		AddedAt:       time.Now().UTC(),
 	}
 
 	// Add item to cart

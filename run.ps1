@@ -35,6 +35,16 @@ if ($process) {
 Start-Sleep -Seconds 2
 
 Write-Host ""
+Write-Host "Building cart-service..." -ForegroundColor Green
+go build -o cart-service.exe ./cmd/server/main.go
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Build failed!" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Build successful!" -ForegroundColor Green
+Write-Host ""
 Write-Host "Starting with Dapr sidecar..." -ForegroundColor Green
 Write-Host "App ID: cart-service" -ForegroundColor Cyan
 Write-Host "App Port: 1008" -ForegroundColor Cyan
@@ -47,10 +57,10 @@ dapr run `
   --app-port 1008 `
   --dapr-http-port 3508 `
   --dapr-grpc-port 50008 `
-  --log-level error `
-  --resources-path ./.dapr `
+  --log-level info `
+  --components-path ./.dapr/components `
   --config ./.dapr/config.yaml `
-  -- go run ./cmd/server/main.go
+  -- ./cart-service.exe
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
