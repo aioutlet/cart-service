@@ -17,7 +17,6 @@ type Config struct {
 	Environment string
 	Server      ServerConfig
 	Dapr        DaprConfig
-	JWT         JWTConfig
 	CORS        CORSConfig
 	Cart        CartConfig
 	Tracing     TracingConfig
@@ -35,10 +34,6 @@ type DaprConfig struct {
 	StateStoreName string
 	AppID          string
 	AppPort        string
-}
-
-type JWTConfig struct {
-	SecretKey string
 }
 
 type CORSConfig struct {
@@ -83,9 +78,6 @@ func Load() *Config {
 			StateStoreName: getEnv("DAPR_STATE_STORE", "statestore"),
 			AppID:          getEnv("DAPR_APP_ID", "cart-service"),
 			AppPort:        getEnv("DAPR_APP_PORT", "1008"),
-		},
-		JWT: JWTConfig{
-			SecretKey: getEnv("JWT_SECRET", "your-256-bit-secret"),
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: getSliceEnv("CORS_ALLOWED_ORIGINS", []string{"*"}),

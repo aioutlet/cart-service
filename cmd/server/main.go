@@ -15,6 +15,7 @@ import (
 	"github.com/aioutlet/cart-service/internal/repository"
 	"github.com/aioutlet/cart-service/internal/services"
 	"github.com/aioutlet/cart-service/pkg/logger"
+	"github.com/aioutlet/cart-service/pkg/secrets"
 	dapr "github.com/dapr/go-sdk/client"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -59,6 +60,10 @@ func main() {
 	defer daprClient.Close()
 
 	log.Info("Successfully connected to Dapr")
+
+	// Initialize Dapr Secret Manager
+	secretManager := secrets.NewDaprSecretManager(daprClient, "local-secret-store", log)
+	log.Info("Dapr Secret Manager initialized")
 
 	// Initialize repository with Dapr
 	cartRepo := repository.NewDaprCartRepository(daprClient, cfg.Dapr.StateStoreName, log)
@@ -153,9 +158,9 @@ func main() {
 	// API routes
 	v1 := router.Group("/api/v1")
 	{
-		// Cart routes with authentication middleware
+		// Cart routes with authentication middleware (using Dapr secrets)
 		cartRoutes := v1.Group("/cart")
-		cartRoutes.Use(middleware.AuthMiddleware(cfg.JWT.SecretKey))
+		cartRoutes.Use(middleware.AuthMiddleware(secretManager, log))
 		{
 			cartRoutes.GET("", cartHandler.GetCart)
 			cartRoutes.POST("/items", cartHandler.AddItem)

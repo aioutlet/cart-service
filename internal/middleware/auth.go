@@ -1,16 +1,27 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
+	
+	"github.com/aioutlet/cart-service/pkg/secrets"
+)
+
+var (
+	jwtSecretCache string
+	jwtSecretMutex sync.RWMutex
 )
 
 // AuthMiddleware validates JWT tokens and extracts user information
-func AuthMiddleware(secretKey string) gin.HandlerFunc {
+// Loads JWT secret from Dapr Secret Store on first use (lazy loading)
+func AuthMiddleware(secretManager *secrets.DaprSecretManager, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -38,6 +49,18 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"message": "JWT token is required",
+			})
+			c.Abort()
+			return
+		}
+
+		// Get JWT secret with lazy loading from Dapr
+		secretKey, err := getJWTSecret(c.Request.Context(), secretManager, logger)
+		if err != nil {
+			logger.Error("Failed to get JWT secret", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"message": "Failed to load JWT configuration",
 			})
 			c.Abort()
 			return
@@ -108,7 +131,8 @@ func AuthMiddleware(secretKey string) gin.HandlerFunc {
 }
 
 // OptionalAuthMiddleware validates JWT tokens if present but doesn't require them
-func OptionalAuthMiddleware(secretKey string) gin.HandlerFunc {
+// Loads JWT secret from Dapr Secret Store on first use (lazy loading)
+func OptionalAuthMiddleware(secretManager *secrets.DaprSecretManager, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -125,6 +149,14 @@ func OptionalAuthMiddleware(secretKey string) gin.HandlerFunc {
 		// Extract the token
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == "" {
+			c.Next()
+			return
+		}
+
+		// Get JWT secret with lazy loading from Dapr
+		secretKey, err := getJWTSecret(c.Request.Context(), secretManager, logger)
+		if err != nil {
+			logger.Warn("Failed to get JWT secret for optional auth", zap.Error(err))
 			c.Next()
 			return
 		}
@@ -168,4 +200,33 @@ func OptionalAuthMiddleware(secretKey string) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// getJWTSecret retrieves JWT secret with caching
+func getJWTSecret(ctx context.Context, secretManager *secrets.DaprSecretManager, logger *zap.Logger) (string, error) {
+	// Check cache first (read lock)
+	jwtSecretMutex.RLock()
+	if jwtSecretCache != "" {
+		defer jwtSecretMutex.RUnlock()
+		return jwtSecretCache, nil
+	}
+	jwtSecretMutex.RUnlock()
+
+	// Load from Dapr (write lock)
+	jwtSecretMutex.Lock()
+	defer jwtSecretMutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if jwtSecretCache != "" {
+		return jwtSecretCache, nil
+	}
+
+	// Load from Dapr Secret Store
+	secret, err := secretManager.GetJWTSecret(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	jwtSecretCache = secret
+	return secret, nil
 }
