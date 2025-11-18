@@ -72,10 +72,10 @@ public class CartResource {
     }
     
     @PUT
-    @Path("/cart/items/{productId}")
-    @Operation(summary = "Update item quantity", description = "Update the quantity of an item in the cart")
+    @Path("/cart/items/{sku}")
+    @Operation(summary = "Update item quantity", description = "Update the quantity of an item in the cart by SKU")
     public Response updateItem(@HeaderParam("X-User-ID") String userId,
-                              @PathParam("productId") String productId,
+                              @PathParam("sku") String sku,
                               @Valid UpdateItemRequest request) {
         if (userId == null || userId.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -84,7 +84,7 @@ public class CartResource {
         }
         
         try {
-            Cart cart = cartService.updateItemQuantity(userId, productId, request.getQuantity());
+            Cart cart = cartService.updateItemQuantity(userId, sku, request.getQuantity());
             return Response.ok(CartResponse.success("Item updated successfully", cart)).build();
         } catch (Exception e) {
             logger.error("Error updating cart item", e);
@@ -95,10 +95,10 @@ public class CartResource {
     }
     
     @DELETE
-    @Path("/cart/items/{productId}")
-    @Operation(summary = "Remove item from cart", description = "Remove an item from the cart")
+    @Path("/cart/items/{sku}")
+    @Operation(summary = "Remove item from cart", description = "Remove an item from the cart by SKU")
     public Response removeItem(@HeaderParam("X-User-ID") String userId,
-                              @PathParam("productId") String productId) {
+                              @PathParam("sku") String sku) {
         if (userId == null || userId.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(CartResponse.error("User not authenticated"))
@@ -106,7 +106,7 @@ public class CartResource {
         }
         
         try {
-            Cart cart = cartService.removeItem(userId, productId);
+            Cart cart = cartService.removeItem(userId, sku);
             return Response.ok(CartResponse.success("Item removed successfully", cart)).build();
         } catch (Exception e) {
             logger.error("Error removing cart item", e);
@@ -192,13 +192,13 @@ public class CartResource {
     }
     
     @PUT
-    @Path("/guest/cart/{guestId}/items/{productId}")
-    @Operation(summary = "Update guest cart item", description = "Update item quantity in guest cart")
+    @Path("/guest/cart/{guestId}/items/{sku}")
+    @Operation(summary = "Update guest cart item", description = "Update item quantity in guest cart by SKU")
     public Response updateGuestItem(@PathParam("guestId") String guestId,
-                                   @PathParam("productId") String productId,
+                                   @PathParam("sku") String sku,
                                    @Valid UpdateItemRequest request) {
         try {
-            Cart cart = cartService.updateItemQuantity(guestId, productId, request.getQuantity());
+            Cart cart = cartService.updateItemQuantity(guestId, sku, request.getQuantity());
             return Response.ok(CartResponse.success("Item updated successfully", cart)).build();
         } catch (Exception e) {
             logger.error("Error updating guest cart item", e);
@@ -209,12 +209,12 @@ public class CartResource {
     }
     
     @DELETE
-    @Path("/guest/cart/{guestId}/items/{productId}")
-    @Operation(summary = "Remove item from guest cart", description = "Remove an item from guest cart")
+    @Path("/guest/cart/{guestId}/items/{sku}")
+    @Operation(summary = "Remove item from guest cart", description = "Remove an item from guest cart by SKU")
     public Response removeGuestItem(@PathParam("guestId") String guestId,
-                                   @PathParam("productId") String productId) {
+                                   @PathParam("sku") String sku) {
         try {
-            Cart cart = cartService.removeItem(guestId, productId);
+            Cart cart = cartService.removeItem(guestId, sku);
             return Response.ok(CartResponse.success("Item removed successfully", cart)).build();
         } catch (Exception e) {
             logger.error("Error removing guest cart item", e);

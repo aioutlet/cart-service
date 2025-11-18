@@ -44,9 +44,9 @@ public class Cart {
     }
     
     public void addItem(CartItem item, int maxItems) {
-        // Check if item already exists
+        // Check if item already exists (match by SKU which includes variant info)
         for (CartItem existingItem : items) {
-            if (existingItem.getProductId().equals(item.getProductId())) {
+            if (existingItem.getSku().equals(item.getSku())) {
                 int newQty = existingItem.getQuantity() + item.getQuantity();
                 existingItem.setQuantity(newQty);
                 existingItem.setSubtotal(newQty * existingItem.getPrice());
@@ -69,13 +69,13 @@ public class Cart {
         this.updatedAt = System.currentTimeMillis();
     }
     
-    public void updateItemQuantity(String productId, int quantity) {
+    public void updateItemQuantity(String sku, int quantity) {
         if (quantity < 0) {
             throw new IllegalArgumentException("Invalid quantity");
         }
         
         items.removeIf(item -> {
-            if (item.getProductId().equals(productId)) {
+            if (item.getSku().equals(sku)) {
                 if (quantity == 0) {
                     return true; // Remove item
                 }
@@ -90,8 +90,8 @@ public class Cart {
         this.updatedAt = System.currentTimeMillis();
     }
     
-    public void removeItem(String productId) {
-        items.removeIf(item -> item.getProductId().equals(productId));
+    public void removeItem(String sku) {
+        items.removeIf(item -> item.getSku().equals(sku));
         updateTotals();
         this.updatedAt = System.currentTimeMillis();
     }

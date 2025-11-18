@@ -142,33 +142,33 @@ public class CartService {
         }
     }
     
-    public Cart updateItemQuantity(String userId, String productId, int quantity) {
+    public Cart updateItemQuantity(String userId, String sku, int quantity) {
         if (!cartRepository.acquireLock(userId, Duration.ofSeconds(30))) {
             throw new CartException("Cart is currently being modified, please try again");
         }
         
         try {
             Cart cart = getCart(userId);
-            cart.updateItemQuantity(productId, quantity);
+            cart.updateItemQuantity(sku, quantity);
             cartRepository.save(cart, parseDuration(defaultTtlConfig));
-            logger.infof("Item quantity updated: userId=%s, productId=%s, quantity=%d", 
-                userId, productId, quantity);
+            logger.infof("Item quantity updated: userId=%s, sku=%s, quantity=%d", 
+                userId, sku, quantity);
             return cart;
         } finally {
             cartRepository.releaseLock(userId);
         }
     }
     
-    public Cart removeItem(String userId, String productId) {
+    public Cart removeItem(String userId, String sku) {
         if (!cartRepository.acquireLock(userId, Duration.ofSeconds(30))) {
             throw new CartException("Cart is currently being modified, please try again");
         }
         
         try {
             Cart cart = getCart(userId);
-            cart.removeItem(productId);
+            cart.removeItem(sku);
             cartRepository.save(cart, parseDuration(defaultTtlConfig));
-            logger.infof("Item removed from cart: userId=%s, productId=%s", userId, productId);
+            logger.infof("Item removed from cart: userId=%s, sku=%s", userId, sku);
             return cart;
         } finally {
             cartRepository.releaseLock(userId);
