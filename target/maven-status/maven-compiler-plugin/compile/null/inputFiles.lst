@@ -1,0 +1,16 @@
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\dto\TransferCartRequest.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\resource\CartResource.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\exception\InsufficientStockException.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\client\ProductClient.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\dto\UpdateItemRequest.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\model\ProductInfo.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\service\CartService.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\dto\CartResponse.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\exception\ProductNotFoundException.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\repository\CartRepository.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\exception\CartException.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\model\Cart.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\dto\AddItemRequest.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\client\InventoryClient.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\model\CartItem.java
+C:\gh\aioutlet\services\cart-service\src\main\java\com\aioutlet\cartservice\resource\RootResource.java

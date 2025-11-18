@@ -3,6 +3,10 @@ kind: Configuration
 metadata:
   name: cart-service-config
 spec:
+  nameResolution:
+    component: "mdns"
+    configuration:
+      instanceAddress: "localhost"
   features:
     - name: proxy.grpc
       enabled: true

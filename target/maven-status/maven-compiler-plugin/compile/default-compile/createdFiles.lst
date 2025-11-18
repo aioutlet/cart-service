@@ -1,0 +1,16 @@
+com\aioutlet\cartservice\client\InventoryClient.class
+com\aioutlet\cartservice\model\Cart.class
+com\aioutlet\cartservice\dto\UpdateItemRequest.class
+com\aioutlet\cartservice\resource\RootResource.class
+com\aioutlet\cartservice\dto\CartResponse.class
+com\aioutlet\cartservice\resource\CartResource.class
+com\aioutlet\cartservice\exception\ProductNotFoundException.class
+com\aioutlet\cartservice\model\CartItem.class
+com\aioutlet\cartservice\repository\CartRepository.class
+com\aioutlet\cartservice\exception\InsufficientStockException.class
+com\aioutlet\cartservice\client\ProductClient.class
+com\aioutlet\cartservice\service\CartService.class
+com\aioutlet\cartservice\model\ProductInfo.class
+com\aioutlet\cartservice\dto\TransferCartRequest.class
+com\aioutlet\cartservice\exception\CartException.class
+com\aioutlet\cartservice\dto\AddItemRequest.class
