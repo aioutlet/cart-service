@@ -295,6 +295,54 @@ Access UIs:
 
 ## 🔐 Security
 
+### Dapr Secret Management
+
+The cart service uses **Dapr's Secret Management building block** for secure storage and retrieval of sensitive configuration:
+
+- **Secret Store Support**: Local file, Azure Key Vault, AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault
+- **Component Integration**: Dapr components reference secrets via `secretKeyRef`
+- **SDK Access**: `DaprSecretManager` provides programmatic access to secrets
+- **Production Ready**: Easy migration from local to cloud-based secret stores
+
+#### Configuration
+
+Secrets are configured in `.dapr/secrets.json` (local) or cloud secret stores (production):
+
+```json
+{
+  "redis": {
+    "password": "redis_dev_pass_123"
+  },
+  "jwt": {
+    "secret": "your-jwt-secret-key"
+  }
+}
+```
+
+Components reference secrets using `secretKeyRef`:
+
+```yaml
+metadata:
+  - name: redisPassword
+    secretKeyRef:
+      name: redis:password
+      key: redis:password
+auth:
+  secretStore: local-secret-store
+```
+
+Access secrets in code via `DaprSecretManager`:
+
+```java
+@Inject
+DaprSecretManager secretManager;
+
+String redisPassword = secretManager.getSecret("redis:password");
+String jwtSecret = secretManager.getJwtSecret();
+```
+
+📖 **See `.dapr/SECRETS_README.md` for complete secret management documentation**
+
 ### Authentication
 
 JWT-based authentication using SmallRye JWT:
@@ -304,7 +352,7 @@ JWT-based authentication using SmallRye JWT:
 
 ### Redis Security
 
-- Password authentication enabled
+- Password authentication via Dapr secrets
 - Connection encryption via TLS (production)
 - Key prefixing to prevent namespace collisions
 
