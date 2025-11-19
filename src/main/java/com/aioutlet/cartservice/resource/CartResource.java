@@ -142,7 +142,10 @@ public class CartResource {
     @Operation(summary = "Transfer guest cart", description = "Transfer guest cart to authenticated user")
     public Response transferCart(@HeaderParam("X-User-ID") String userId,
                                  @Valid TransferCartRequest request) {
+        logger.infof("Transfer cart request: userId=%s, guestId=%s", userId, request.getGuestId());
+        
         if (userId == null || userId.isEmpty()) {
+            logger.warnf("Transfer cart rejected: missing userId header");
             return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(CartResponse.error("User not authenticated"))
                 .build();

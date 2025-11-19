@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dapr-debug",
+      "type": "shell",
+      "command": "dapr run --app-id cart-service --app-port 1008 --dapr-http-port 3508 --dapr-grpc-port 50008 --resources-path ./.dapr --config ./.dapr/config.yaml --log-level error",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": ".",
+            "file": 1,
+            "location": 2,
+            "message": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Starting Dapr.*",
+          "endsPattern": "^.*You're up and running!.*"
+        }
+      }
+    },
+    {
+      "label": "dapr-down",
+      "type": "shell",
+      "command": "dapr stop --app-id cart-service"
+    },
+    {
+      "label": "Run with Dapr",
+      "type": "shell",
+      "command": "${workspaceFolder}/run.ps1",
+      "windows": {
+        "command": "${workspaceFolder}/run.ps1"
+      },
+      "linux": {
+        "command": "${workspaceFolder}/run.sh"
+      },
+      "osx": {
+        "command": "${workspaceFolder}/run.sh"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
