@@ -9,6 +9,8 @@ import com.aioutlet.cartservice.service.CartService;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -20,6 +22,7 @@ import org.jboss.logging.Logger;
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Cart", description = "Shopping cart operations")
 public class CartResource {
+    // Updated: 2025-11-20 - Fixed header case for Dapr compatibility
     
     @Inject
     Logger logger;
@@ -32,7 +35,7 @@ public class CartResource {
     @GET
     @Path("/cart")
     @Operation(summary = "Get user cart", description = "Retrieve the authenticated user's shopping cart")
-    public Response getCart(@HeaderParam("X-User-ID") String userId) {
+    public Response getCart(@HeaderParam("X-User-Id") String userId) {
         if (userId == null || userId.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(CartResponse.error("User not authenticated"))
@@ -53,7 +56,7 @@ public class CartResource {
     @POST
     @Path("/cart/items")
     @Operation(summary = "Add item to cart", description = "Add an item to the authenticated user's cart")
-    public Response addItem(@HeaderParam("X-User-ID") String userId, @Valid AddItemRequest request) {
+    public Response addItem(@HeaderParam("X-User-Id") String userId, @Valid AddItemRequest request) {
         if (userId == null || userId.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(CartResponse.error("User not authenticated"))
@@ -74,7 +77,7 @@ public class CartResource {
     @PUT
     @Path("/cart/items/{sku}")
     @Operation(summary = "Update item quantity", description = "Update the quantity of an item in the cart by SKU")
-    public Response updateItem(@HeaderParam("X-User-ID") String userId,
+    public Response updateItem(@HeaderParam("X-User-Id") String userId,
                               @PathParam("sku") String sku,
                               @Valid UpdateItemRequest request) {
         if (userId == null || userId.isEmpty()) {
@@ -97,7 +100,7 @@ public class CartResource {
     @DELETE
     @Path("/cart/items/{sku}")
     @Operation(summary = "Remove item from cart", description = "Remove an item from the cart by SKU")
-    public Response removeItem(@HeaderParam("X-User-ID") String userId,
+    public Response removeItem(@HeaderParam("X-User-Id") String userId,
                               @PathParam("sku") String sku) {
         if (userId == null || userId.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -119,7 +122,7 @@ public class CartResource {
     @DELETE
     @Path("/cart")
     @Operation(summary = "Clear cart", description = "Remove all items from the cart")
-    public Response clearCart(@HeaderParam("X-User-ID") String userId) {
+    public Response clearCart(@HeaderParam("X-User-Id") String userId) {
         if (userId == null || userId.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED)
                 .entity(CartResponse.error("User not authenticated"))
@@ -140,9 +143,21 @@ public class CartResource {
     @POST
     @Path("/cart/transfer")
     @Operation(summary = "Transfer guest cart", description = "Transfer guest cart to authenticated user")
-    public Response transferCart(@HeaderParam("X-User-ID") String userId,
+    public Response transferCart(@HeaderParam("X-User-Id") String userId,
+                                 @HeaderParam("Authorization") String authHeader,
+                                 @HeaderParam("X-Correlation-Id") String correlationId,
+                                 @Context HttpHeaders httpHeaders,
                                  @Valid TransferCartRequest request) {
-        logger.infof("Transfer cart request: userId=%s, guestId=%s", userId, request.getGuestId());
+        logger.infof("=== CART TRANSFER DEBUG ===");
+        logger.infof("X-User-Id header: %s", userId);
+        logger.infof("Authorization header: %s", authHeader != null ? "present" : "null");
+        logger.infof("X-Correlation-Id header: %s", correlationId);
+        logger.infof("All HTTP headers:");
+        httpHeaders.getRequestHeaders().forEach((key, values) -> {
+            logger.infof("  %s: %s", key, String.join(", ", values));
+        });
+        logger.infof("Request guestId: %s", request.getGuestId());
+        logger.infof("=== END DEBUG ===");
         
         if (userId == null || userId.isEmpty()) {
             logger.warnf("Transfer cart rejected: missing userId header");

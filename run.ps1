@@ -4,7 +4,13 @@
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "Starting cart-service with Dapr..." -ForegroundColor Cyan
+#!/usr/bin/env pwsh
+# Run Cart Service with Dapr sidecar
+# Usage: .\run.ps1
+
+$Host.UI.RawUI.WindowTitle = "Cart Service"
+
+Write-Host "Starting Cart Service with Dapr..." -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
