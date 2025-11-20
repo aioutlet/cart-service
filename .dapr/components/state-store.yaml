@@ -19,4 +19,4 @@ spec:
     - name: enableTLS
       value: 'false'
 auth:
-  secretStore: local-secret-store
+  secretStore: secret-store

@@ -24,15 +24,14 @@ public class DaprSecretManager {
     @Inject
     Logger logger;
 
-    @ConfigProperty(name = "dapr.secret-store.name", defaultValue = "local-secret-store")
-    String secretStoreName;
+    private static final String SECRET_STORE_NAME = "secret-store";
 
     private DaprClient daprClient;
 
     @PostConstruct
     void init() {
         this.daprClient = new DaprClientBuilder().build();
-        logger.infof("Dapr Secret Manager initialized with store: %s", secretStoreName);
+        logger.infof("Dapr Secret Manager initialized with store: %s", SECRET_STORE_NAME);
     }
 
     @PreDestroy
@@ -58,7 +57,7 @@ public class DaprSecretManager {
         try {
             logger.debugf("Retrieving secret: %s", key);
             
-            Map<String, String> secret = daprClient.getSecret(secretStoreName, key).block();
+            Map<String, String> secret = daprClient.getSecret(SECRET_STORE_NAME, key).block();
             
             if (secret == null || secret.isEmpty()) {
                 logger.warnf("Secret not found: %s", key);
@@ -84,7 +83,7 @@ public class DaprSecretManager {
     public Map<String, String> getSecrets(String key) {
         try {
             logger.debugf("Retrieving secrets for key: %s", key);
-            return daprClient.getSecret(secretStoreName, key).block();
+            return daprClient.getSecret(SECRET_STORE_NAME, key).block();
         } catch (Exception e) {
             logger.errorf("Failed to retrieve secrets for key: %s", key, e);
             throw new RuntimeException("Failed to retrieve secrets for key: " + key, e);
