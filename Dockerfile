@@ -1,51 +1,70 @@
-# Build stage
-FROM golang:1.21-alpine AS builder
+# =============================================================================
+# Multi-stage Dockerfile for Java Quarkus Cart Service
+# =============================================================================
 
-# Set working directory
+# -----------------------------------------------------------------------------
+# Build stage - Build the Quarkus application
+# -----------------------------------------------------------------------------
+FROM eclipse-temurin:21-jdk-alpine AS builder
+
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache git
+# Copy Maven wrapper and pom.xml
+COPY mvnw mvnw.cmd ./
+COPY .mvn .mvn
+COPY pom.xml ./
 
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
+# Download dependencies (cached layer)
+RUN ./mvnw dependency:go-offline -B
 
 # Copy source code
-COPY . .
+COPY src ./src
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o cart-service ./cmd/server
+RUN ./mvnw package -DskipTests -B
 
-# Final stage
-FROM alpine:latest
+# -----------------------------------------------------------------------------
+# Production stage - Optimized for production deployment
+# -----------------------------------------------------------------------------
+FROM eclipse-temurin:21-jre-alpine AS production
 
-# Install ca-certificates for HTTPS calls
-RUN apk --no-cache add ca-certificates tzdata
+# Install ca-certificates for HTTPS calls and wget for health checks
+RUN apk --no-cache add ca-certificates tzdata wget
 
 # Create non-root user
 RUN addgroup -g 1001 appgroup && \
-    adduser -D -s /bin/sh -u 1001 -G appgroup appuser
+    adduser -D -s /bin/sh -u 1001 -G appgroup cartuser
 
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/cart-service .
+# Copy the built artifact from builder
+COPY --from=builder --chown=cartuser:appgroup /app/target/quarkus-app/lib/ ./lib/
+COPY --from=builder --chown=cartuser:appgroup /app/target/quarkus-app/*.jar ./
+COPY --from=builder --chown=cartuser:appgroup /app/target/quarkus-app/app/ ./app/
+COPY --from=builder --chown=cartuser:appgroup /app/target/quarkus-app/quarkus/ ./quarkus/
 
 # Create logs directory
-RUN mkdir -p logs && chown -R appuser:appgroup /app
+RUN mkdir -p logs && chown -R cartuser:appgroup logs
 
 # Switch to non-root user
-USER appuser
+USER cartuser
 
 # Expose port
 EXPOSE 1008
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check (using wget which is smaller than curl)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:1008/readiness || exit 1
 
-# Run the application
-CMD ["./cart-service"]
+# Run the Quarkus application
+CMD ["java", "-jar", "quarkus-run.jar"]
+
+# Labels for better image management and security scanning
+LABEL maintainer="AIOutlet Team"
+LABEL service="cart-service"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/aioutlet/aioutlet"
+LABEL org.opencontainers.image.description="Cart Service for AIOutlet platform"
+LABEL org.opencontainers.image.vendor="AIOutlet"
+LABEL framework="quarkus"
+LABEL language="java"
