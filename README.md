@@ -1,22 +1,91 @@
-# Cart Service 🛒
+# 🛒 Cart Service
 
-A high-performance, Redis-backed microservice for managing shopping carts in the AI Outlet e-commerce platform. Built with Quarkus for instant hot reload and maximum developer productivity.
+Shopping cart microservice for xShop.ai - high-performance, Redis-backed cart management with instant hot reload, guest support, and distributed locking.
 
-## 🚀 Features
+## 🚀 Quick Start
 
-- **Instant Hot Reload**: Sub-second hot reload during development with Quarkus dev mode
-- **High Performance**: Built with Quarkus for cloud-native performance
-- **Redis Storage**: Lightning-fast cart operations with automatic expiration
-- **JWT Authentication**: Secure user authentication with SmallRye JWT
-- **Guest Support**: Full cart functionality for anonymous users
-- **Distributed Locking**: Prevents race conditions in concurrent operations
-- **Auto-validation**: Real-time product and inventory validation via Dapr
-- **Cart Transfer**: Seamless guest-to-user cart migration
-- **Comprehensive Monitoring**: Structured logging and health checks
-- **Service Mesh Ready**: Full Dapr integration for service invocation
-- **API Documentation**: Complete OpenAPI/Swagger documentation
+### Prerequisites
 
-## 🏗️ Architecture
+- **Java** 21+ ([Download](https://adoptium.net/))
+- **Maven** 3.9+ ([Install Guide](https://maven.apache.org/install.html)) or use included wrapper
+- **Redis** 7.0+ ([Install Guide](https://redis.io/docs/getting-started/))
+- **Dapr CLI** 1.16+ ([Install Guide](https://docs.dapr.io/getting-started/install-dapr-cli/))
+
+### Setup
+
+**1. Start Redis**
+```bash
+# Using Docker (recommended)
+docker run -d -p 6379:6379 --name redis \
+  redis:7-alpine redis-server --requirepass redis_dev_pass_123
+
+# Or install Redis locally
+```
+
+**2. Clone & Build**
+```bash
+git clone https://github.com/xshopai/cart-service.git
+cd cart-service
+./mvnw clean install
+```
+
+**3. Run with Dapr (Recommended)**
+```bash
+# PowerShell
+.\run.ps1
+
+# Bash
+./run.sh
+```
+
+**4. Or Run Without Dapr (Development)**
+```bash
+./mvnw quarkus:dev
+```
+
+**5. Verify**
+```bash
+# Check health
+curl http://localhost:1008/health
+
+# Swagger UI
+Open http://localhost:1008/swagger-ui
+
+# Quarkus Dev UI
+Open http://localhost:1008/q/dev
+```
+
+### Common Commands
+
+```bash
+# Run tests
+./mvnw test
+
+# Run with coverage
+./mvnw test jacoco:report
+
+# Continuous testing (in dev mode, press 'r')
+./mvnw quarkus:dev
+
+# Build native image
+./mvnw package -Pnative
+
+# View coverage report
+open target/site/jacoco/index.html
+```
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
+| [📘 Technical Reference](docs/TECHNICAL.md) | Architecture, security, monitoring |
+| [🤝 Contributing](docs/CONTRIBUTING.md) | Contribution guidelines and workflow |
+| [🔐 Secrets Management](.dapr/SECRETS_README.md) | Dapr secret store configuration |
+
+**API Documentation**: Swagger UI at `/swagger-ui` with interactive testing.
+
+## ⚙️ Configuration
 
 The Cart Service follows clean architecture principles with clear separation of concerns:
 
