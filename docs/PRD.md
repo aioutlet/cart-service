@@ -1,11 +1,11 @@
 # Product Requirements Document (PRD)
 
-## Cart Service - AIOutlet Platform
+## Cart Service - xShop.ai Platform
 
 **Version:** 1.0  
 **Last Updated:** November 10, 2025  
 **Status:** Active Development  
-**Owner:** AIOutlet Platform Team
+**Owner:** xShop.ai Platform Team
 
 ---
 
@@ -27,7 +27,7 @@
 
 ### 1.1 Product Vision
 
-The Cart Service is a high-performance microservice within the AIOutlet e-commerce platform, responsible for managing shopping cart operations with support for both authenticated users and guest users. It provides lightning-fast cart operations using Dapr State Management with Redis as the backing store, enabling automatic expiration, concurrency control, and store-agnostic architecture.
+The Cart Service is a high-performance microservice within the xShop.ai e-commerce platform, responsible for managing shopping cart operations with support for both authenticated users and guest users. It provides lightning-fast cart operations using Dapr State Management with Redis as the backing store, enabling automatic expiration, concurrency control, and store-agnostic architecture.
 
 ### 1.2 Business Objectives
 

@@ -60,11 +60,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD ["java", "-jar", "quarkus-run.jar"]
 
 # Labels for better image management and security scanning
-LABEL maintainer="AIOutlet Team"
+LABEL maintainer="xShop.ai Team"
 LABEL service="cart-service"
 LABEL version="1.0.0"
 LABEL org.opencontainers.image.source="https://github.com/aioutlet/aioutlet"
-LABEL org.opencontainers.image.description="Cart Service for AIOutlet platform"
-LABEL org.opencontainers.image.vendor="AIOutlet"
+LABEL org.opencontainers.image.description="Cart Service for xShop.ai platform"
+LABEL org.opencontainers.image.vendor="xShop.ai"
 LABEL framework="quarkus"
 LABEL language="java"
