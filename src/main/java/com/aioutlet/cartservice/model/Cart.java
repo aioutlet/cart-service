@@ -1,4 +1,4 @@
-package com.aioutlet.cartservice.model;
+package com.xshopai.cartservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;

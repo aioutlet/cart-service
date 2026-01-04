@@ -1,6 +1,6 @@
 # 🛒 Cart Service
 
-Shopping cart microservice for xShop.ai - high-performance, Redis-backed cart management with instant hot reload, guest support, and distributed locking.
+Shopping cart microservice for xshop.ai - high-performance, Redis-backed cart management with instant hot reload, guest support, and distributed locking.
 
 ## 🚀 Quick Start
 
@@ -93,7 +93,7 @@ The Cart Service follows clean architecture principles with clear separation of 
 cart-service/
 ├── src/
 │   ├── main/
-│   │   ├── java/com/aioutlet/cartservice/
+│   │   ├── java/com/xshopai/cartservice/
 │   │   │   ├── client/          # External service clients (Dapr)
 │   │   │   ├── dto/             # Data transfer objects
 │   │   │   ├── exception/       # Custom exceptions
@@ -326,7 +326,7 @@ Structured JSON logging in production:
 {
   "timestamp": "2025-11-17T22:00:10Z",
   "level": "INFO",
-  "logger": "com.aioutlet.cartservice.service.CartService",
+  "logger": "com.xshopai.cartservice.service.CartService",
   "message": "Item added to cart",
   "userId": "379feb6c-7625-4a43-87c6-623c6665446d",
   "productId": "691b0a616f5dbbaca2b730ba",

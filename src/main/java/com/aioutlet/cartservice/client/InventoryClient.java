@@ -1,4 +1,4 @@
-package com.aioutlet.cartservice.client;
+package com.xshopai.cartservice.client;
 
 import io.dapr.client.DaprClient;
 import io.dapr.client.DaprClientBuilder;

@@ -1,11 +1,11 @@
-package com.aioutlet.cartservice.resource;
+package com.xshopai.cartservice.resource;
 
-import com.aioutlet.cartservice.dto.AddItemRequest;
-import com.aioutlet.cartservice.dto.CartResponse;
-import com.aioutlet.cartservice.dto.TransferCartRequest;
-import com.aioutlet.cartservice.dto.UpdateItemRequest;
-import com.aioutlet.cartservice.model.Cart;
-import com.aioutlet.cartservice.service.CartService;
+import com.xshopai.cartservice.dto.AddItemRequest;
+import com.xshopai.cartservice.dto.CartResponse;
+import com.xshopai.cartservice.dto.TransferCartRequest;
+import com.xshopai.cartservice.dto.UpdateItemRequest;
+import com.xshopai.cartservice.model.Cart;
+import com.xshopai.cartservice.service.CartService;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;

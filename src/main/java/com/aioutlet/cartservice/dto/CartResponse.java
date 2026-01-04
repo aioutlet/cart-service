@@ -1,4 +1,4 @@
-package com.aioutlet.cartservice.dto;
+package com.xshopai.cartservice.dto;
 
 public class CartResponse {
     private boolean success;

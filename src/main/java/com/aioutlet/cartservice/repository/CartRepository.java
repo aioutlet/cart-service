@@ -1,6 +1,6 @@
-package com.aioutlet.cartservice.repository;
+package com.xshopai.cartservice.repository;
 
-import com.aioutlet.cartservice.model.Cart;
+import com.xshopai.cartservice.model.Cart;
 import io.dapr.client.DaprClient;
 import io.dapr.client.DaprClientBuilder;
 import io.dapr.client.domain.State;

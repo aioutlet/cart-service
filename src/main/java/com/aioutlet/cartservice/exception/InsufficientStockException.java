@@ -1,4 +1,4 @@
-package com.aioutlet.cartservice.exception;
+package com.xshopai.cartservice.exception;
 
 public class InsufficientStockException extends CartException {
     

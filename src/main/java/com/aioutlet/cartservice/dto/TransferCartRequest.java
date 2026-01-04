@@ -1,4 +1,4 @@
-package com.aioutlet.cartservice.dto;
+package com.xshopai.cartservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

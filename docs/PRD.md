@@ -1,11 +1,11 @@
 # Product Requirements Document (PRD)
 
-## Cart Service - xShop.ai Platform
+## Cart Service - xshop.ai Platform
 
 **Version:** 1.0  
 **Last Updated:** November 10, 2025  
 **Status:** Active Development  
-**Owner:** xShop.ai Platform Team
+**Owner:** xshop.ai Platform Team
 
 ---
 
@@ -27,7 +27,7 @@
 
 ### 1.1 Product Vision
 
-The Cart Service is a high-performance microservice within the xShop.ai e-commerce platform, responsible for managing shopping cart operations with support for both authenticated users and guest users. It provides lightning-fast cart operations using Dapr State Management with Redis as the backing store, enabling automatic expiration, concurrency control, and store-agnostic architecture.
+The Cart Service is a high-performance microservice within the xshop.ai e-commerce platform, responsible for managing shopping cart operations with support for both authenticated users and guest users. It provides lightning-fast cart operations using Dapr State Management with Redis as the backing store, enabling automatic expiration, concurrency control, and store-agnostic architecture.
 
 ### 1.2 Business Objectives
 
@@ -139,7 +139,7 @@ Cart Service stores cart data using Dapr State Management (with Redis backing st
       "sku": "TS-BLK-001",
       "price": 29.99,
       "quantity": 2,
-      "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+      "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
       "category": "Clothing",
       "subtotal": 59.98,
       "addedAt": "2025-11-10T10:00:00Z"
@@ -335,7 +335,7 @@ X-Correlation-ID: req-abc-123 (optional)
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 2,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 59.98,
         "addedAt": "2025-11-10T10:00:00Z"
@@ -395,7 +395,7 @@ X-Correlation-ID: req-def-456
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 2,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 59.98,
         "addedAt": "2025-11-10T10:00:00Z"
@@ -455,7 +455,7 @@ Content-Type: application/json
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 3,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 89.97,
         "addedAt": "2025-11-10T10:00:00Z"
@@ -590,7 +590,7 @@ Content-Type: application/json
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 2,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 59.98,
         "addedAt": "2025-11-10T09:00:00Z"
@@ -651,7 +651,7 @@ Content-Type: application/json
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 1,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 29.99,
         "addedAt": "2025-11-10T09:00:00Z"
@@ -706,7 +706,7 @@ Content-Type: application/json
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 1,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 29.99,
         "addedAt": "2025-11-10T09:00:00Z"
@@ -763,7 +763,7 @@ Content-Type: application/json
         "sku": "TS-BLK-001",
         "price": 29.99,
         "quantity": 2,
-        "imageUrl": "https://cdn.aioutlet.com/products/ts-blk-001.jpg",
+        "imageUrl": "https://cdn.xshopai.com/products/ts-blk-001.jpg",
         "category": "Clothing",
         "subtotal": 59.98,
         "addedAt": "2025-11-10T09:00:00Z"

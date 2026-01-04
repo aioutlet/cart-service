@@ -1,15 +1,15 @@
-package com.aioutlet.cartservice.service;
+package com.xshopai.cartservice.service;
 
-import com.aioutlet.cartservice.client.InventoryClient;
-import com.aioutlet.cartservice.client.ProductClient;
-import com.aioutlet.cartservice.dto.AddItemRequest;
-import com.aioutlet.cartservice.exception.CartException;
-import com.aioutlet.cartservice.exception.InsufficientStockException;
-import com.aioutlet.cartservice.exception.ProductNotFoundException;
-import com.aioutlet.cartservice.model.Cart;
-import com.aioutlet.cartservice.model.CartItem;
-import com.aioutlet.cartservice.model.ProductInfo;
-import com.aioutlet.cartservice.repository.CartRepository;
+import com.xshopai.cartservice.client.InventoryClient;
+import com.xshopai.cartservice.client.ProductClient;
+import com.xshopai.cartservice.dto.AddItemRequest;
+import com.xshopai.cartservice.exception.CartException;
+import com.xshopai.cartservice.exception.InsufficientStockException;
+import com.xshopai.cartservice.exception.ProductNotFoundException;
+import com.xshopai.cartservice.model.Cart;
+import com.xshopai.cartservice.model.CartItem;
+import com.xshopai.cartservice.model.ProductInfo;
+import com.xshopai.cartservice.repository.CartRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
