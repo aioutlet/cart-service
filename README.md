@@ -1,6 +1,6 @@
 # 🛒 Cart Service
 
-Shopping cart microservice for xshop.ai - high-performance, Redis-backed cart management with instant hot reload, guest support, and distributed locking.
+Shopping cart microservice for xshopai - high-performance, Redis-backed cart management with instant hot reload, guest support, and distributed locking.
 
 ## 🚀 Quick Start
 
