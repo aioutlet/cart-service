@@ -4,7 +4,7 @@
     {
       "label": "dapr-debug",
       "type": "shell",
-      "command": "dapr run --app-id cart-service --app-port 1008 --dapr-http-port 3508 --dapr-grpc-port 50008 --resources-path ./.dapr --config ./.dapr/config.yaml --log-level error",
+      "command": "dapr run --app-id cart-service --app-port 1008 --dapr-http-port 3508 --dapr-grpc-port 50008 --resources-path ./.dapr --config ./.dapr/config.yaml --log-level error -- ./mvnw quarkus:dev -Ddebug=5005 -Dsuspend=y",
       "isBackground": true,
       "problemMatcher": {
         "pattern": [
@@ -18,7 +18,7 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^.*Starting Dapr.*",
-          "endsPattern": "^.*You're up and running!.*"
+          "endsPattern": "^.*Listening for transport dt_socket.*"
         }
       }
     },
